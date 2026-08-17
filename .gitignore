@@ -1,0 +1,11 @@
+# Ignore all contents in data directory
+data/*
+
+# Do not ignore .gitkeep so the data directory is preserved
+!data/.gitkeep
+
+# Python & Jupyter cache
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
