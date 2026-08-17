@@ -278,7 +278,7 @@ function onChordChanged(index) {
   // Upcoming Chords (if container present)
   if (el.upcomingChordsContainer) {
     const upcoming = state.activeChords.slice(index + 1, index + 5);
-    renderUpcomingChords(el.upcomingChordsContainer, upcoming);
+    renderUpcomingChords(el.upcomingChordsContainer, upcoming, state.capoFret);
   }
 
   // Update Alternative & Easier Chord Voicings

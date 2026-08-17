@@ -23,6 +23,11 @@ export function formatChordName(chordStr) {
     if (!quality || quality.toLowerCase() === 'maj') {
       return root;
     }
+    const qLower = quality.toLowerCase();
+    if (qLower === 'hdim7') return `${root}ø7`;
+    if (qLower === 'minmaj7') return `${root}m(maj7)`;
+    if (qLower === 'maj6' || qLower === '6') return `${root}6`;
+    if (qLower === 'sus') return `${root}sus4`;
     const formattedQuality = quality.replace(/min/g, 'm');
     return root + formattedQuality;
   }
@@ -70,6 +75,11 @@ export function getChordNotes(chordStr) {
     quality = chordStr.split(':')[1].split('/')[0].toLowerCase();
   }
 
+  // Quality alias normalization
+  if (quality === 'sus') quality = 'sus4';
+  if (quality === '6') quality = 'maj6';
+  if (quality === 'maj') quality = '';
+
   const intervals = CHORD_INTERVALS[quality] || CHORD_INTERVALS[''];
   return intervals.map(offset => PITCH_CLASSES[(rootIdx + offset) % 12]);
 }
@@ -88,10 +98,18 @@ export function getGuitarChordShape(chordStr) {
   // Match normalized root
   const parts = cleanChord.split(':');
   const normRoot = normalizeRoot(parts[0]);
-  const quality = parts.length > 1 ? ':' + parts[1] : '';
-  const normName = normRoot + quality;
+  let quality = parts.length > 1 ? parts[1].toLowerCase() : '';
 
+  // Aliases normalization
+  let normQuality = quality;
+  if (quality === 'sus') normQuality = 'sus4';
+  if (quality === '6') normQuality = 'maj6';
+  if (quality === 'maj') normQuality = '';
+
+  const normName = normQuality ? `${normRoot}:${normQuality}` : normRoot;
   if (GUITAR_CHORDS_DB[normName]) return GUITAR_CHORDS_DB[normName];
+  if (GUITAR_CHORDS_DB[`${normRoot}:${quality}`]) return GUITAR_CHORDS_DB[`${normRoot}:${quality}`];
+  if (!quality && GUITAR_CHORDS_DB[normRoot]) return GUITAR_CHORDS_DB[normRoot];
 
   // Fallbacks
   if (quality.includes('min') && GUITAR_CHORDS_DB[normRoot + ':min']) {

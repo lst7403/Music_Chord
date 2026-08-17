@@ -15,7 +15,7 @@ export function formatTimePrecise(seconds) {
   return `${m}:${s.padStart(5, '0')}`;
 }
 
-// Generate Mini Guitar Fretboard SVG (Enlarged narrow 6 strings, 4 frets)
+// Generate Mini Guitar Fretboard SVG (Enlarged narrow 6 strings, 5 frets for all CAGED positions)
 export function generateMiniGuitarSvg(chordInput, rootColor) {
   if (!chordInput || chordInput === 'N') {
     return `<div class="mini-rest-label">Rest</div>`;
@@ -27,20 +27,21 @@ export function generateMiniGuitarSvg(chordInput, rootColor) {
   }
 
   const baseFret = chordData.baseFret || 1;
-  const xOffset = 17;
-  const yOffset = 16;
-  const width = 52;
+
+  const xOffset = 16;
+  const yOffset = 15;
+  const width = 54;
   const height = 66;
   const numStrings = 6;
-  const numFrets = 4;
+  const numFrets = 5;
   const stringGap = width / (numStrings - 1);
   const fretGap = height / numFrets;
 
   let svg = `<svg viewBox="0 0 86 86" class="mini-fretboard-svg">`;
 
-  // Base Fret indicator on the left (positioned further left)
+  // Base Fret indicator on the left
   if (baseFret > 1) {
-    svg += `<text x="6" y="${yOffset + 12}" fill="#38bdf8" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace" text-anchor="middle">${baseFret}</text>`;
+    svg += `<text x="6" y="${yOffset + 11}" fill="#38bdf8" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace" text-anchor="middle">${baseFret}</text>`;
   }
 
   // Fretboard rect
@@ -80,7 +81,7 @@ export function generateMiniGuitarSvg(chordInput, rootColor) {
           const cy = yOffset + (relativeFret - 0.5) * fretGap;
           const startX = xOffset + minString * stringGap - 3;
           const endX = xOffset + maxString * stringGap + 3;
-          svg += `<rect x="${startX}" y="${cy - 5}" width="${endX - startX}" height="10" rx="5" fill="${rootColor}" opacity="0.85"/>`;
+          svg += `<rect x="${startX}" y="${cy - 4.5}" width="${endX - startX}" height="9" rx="4.5" fill="${rootColor}" opacity="0.85"/>`;
         }
       }
     });
@@ -91,16 +92,16 @@ export function generateMiniGuitarSvg(chordInput, rootColor) {
     const cx = xOffset + sIdx * stringGap;
     if (fret === -1) {
       // Mute (X)
-      svg += `<text x="${cx}" y="${yOffset - 4}" text-anchor="middle" fill="#f43f5e" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">✕</text>`;
+      svg += `<text x="${cx}" y="${yOffset - 4}" text-anchor="middle" fill="#f43f5e" font-size="9" font-weight="bold" font-family="'JetBrains Mono', monospace">✕</text>`;
     } else if (fret === 0) {
       // Open (O)
-      svg += `<circle cx="${cx}" cy="${yOffset - 6}" r="3.2" fill="none" stroke="#10b981" stroke-width="1.2"/>`;
+      svg += `<circle cx="${cx}" cy="${yOffset - 5}" r="2.8" fill="none" stroke="#10b981" stroke-width="1.2"/>`;
     } else {
       // Finger Dot
       const relativeFret = fret - baseFret + 1;
       if (relativeFret >= 1 && relativeFret <= numFrets) {
         const cy = yOffset + (relativeFret - 0.5) * fretGap;
-        svg += `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${rootColor}" stroke="#ffffff" stroke-width="1"/>`;
+        svg += `<circle cx="${cx}" cy="${cy}" r="4" fill="${rootColor}" stroke="#ffffff" stroke-width="1"/>`;
       }
     }
   });
@@ -179,20 +180,21 @@ export function renderUnifiedTimeline(container, chords, onCardClick, capoFret =
     card.dataset.index = index;
     card.dataset.start = item.start;
     card.dataset.end = item.end;
-    card.dataset.chord = item.chord.toLowerCase();
 
-    const root = item.chord === 'N' ? 'N' : normalizeRoot(item.chord.split(':')[0]);
+    // When Capo is active, guitar displays easier transposed finger shapes and chord shape name
+    const effectiveGuitarChord = capoFret > 0 && item.chord !== 'N' ? transposeChordName(item.chord, -capoFret) : item.chord;
+    card.dataset.chord = effectiveGuitarChord.toLowerCase();
+
+    const root = effectiveGuitarChord === 'N' ? 'N' : normalizeRoot(effectiveGuitarChord.split(':')[0]);
     const rootColor = ROOT_COLORS[root] || '#6366f1';
 
-    // When Capo is active, guitar displays easier transposed finger shapes
-    const effectiveGuitarChord = capoFret > 0 && item.chord !== 'N' ? transposeChordName(item.chord, -capoFret) : item.chord;
     const miniGuitarHtml = generateMiniGuitarSvg(effectiveGuitarChord, rootColor);
     const miniPianoHtml = generateMiniPianoSvg(item.chord, rootColor);
-    const displayName = formatChordName(item.chord);
+    const displayName = formatChordName(effectiveGuitarChord);
 
     card.innerHTML = `
       <div class="chord-top-bar" style="background: ${rootColor}"></div>
-      <div class="card-chord-name" style="color: ${item.chord === 'N' ? '#94a3b8' : '#ffffff'}">${displayName}</div>
+      <div class="card-chord-name" style="color: ${effectiveGuitarChord === 'N' ? '#94a3b8' : '#ffffff'}">${displayName}</div>
       <div class="card-visual-container">
         <div class="card-mini-guitar">${miniGuitarHtml}</div>
         <div class="card-mini-piano">${miniPianoHtml}</div>
@@ -212,7 +214,7 @@ export function renderUnifiedTimeline(container, chords, onCardClick, capoFret =
   container.appendChild(frag);
 }
 
-export function renderUpcomingChords(container, upcomingList) {
+export function renderUpcomingChords(container, upcomingList, capoFret = 0) {
   if (!container) return;
   container.innerHTML = '';
   if (!upcomingList || !upcomingList.length) {
@@ -223,9 +225,10 @@ export function renderUpcomingChords(container, upcomingList) {
   upcomingList.forEach(item => {
     const chip = document.createElement('span');
     chip.className = 'upcoming-chip';
-    const root = item.chord === 'N' ? 'N' : normalizeRoot(item.chord.split(':')[0]);
+    const effectiveChord = capoFret > 0 && item.chord !== 'N' ? transposeChordName(item.chord, -capoFret) : item.chord;
+    const root = effectiveChord === 'N' ? 'N' : normalizeRoot(effectiveChord.split(':')[0]);
     chip.style.borderColor = ROOT_COLORS[root] || 'transparent';
-    chip.textContent = formatChordName(item.chord);
+    chip.textContent = formatChordName(effectiveChord);
     frag.appendChild(chip);
   });
   container.appendChild(frag);
