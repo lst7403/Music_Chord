@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChordVision — AI Music & Chord Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- TOP NAVIGATION BAR -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">🎸</div>
+        <div class="brand-text">
+          <h1>ChordVision</h1>
+          <span class="badge-tag">AI Harmony & Instrument Engine</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Stem Selector Dropdown -->
+        <div class="control-group">
+          <label for="stem-select">Audio Track:</label>
+          <select id="stem-select" class="custom-select">
+            <option value="loading">Loading audio tracks...</option>
+          </select>
+        </div>
+
+        <!-- Transpose Controller -->
+        <div class="control-group transpose-group">
+          <label>Transpose:</label>
+          <div class="btn-group">
+            <button id="transpose-down" class="btn btn-sm btn-icon" title="Transpose Down 1 Semitone">-</button>
+            <span id="transpose-val" class="tag-val">0</span>
+            <button id="transpose-up" class="btn btn-sm btn-icon" title="Transpose Up 1 Semitone">+</button>
+            <button id="transpose-reset" class="btn btn-sm btn-ghost" title="Reset Key">Reset</button>
+          </div>
+        </div>
+
+        <!-- Speed Selector -->
+        <div class="control-group">
+          <label for="speed-select">Speed:</label>
+          <select id="speed-select" class="custom-select custom-select-sm">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1.0" selected>1.0x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-layout">
+      <!-- 1. FULL-WIDTH HORIZONTAL CHORD PROGRESSION TICKER -->
+      <section class="card chord-timeline-section">
+        <div class="sheet-header">
+          <div class="sheet-title-area">
+            <div class="section-title-tag">
+              <span class="icon">🎼</span>
+              <h2>Chord Progression Stream</h2>
+            </div>
+            <span id="total-chords-count" class="badge-count">0 Chords</span>
+            
+            <div class="btn-group scroll-nav-btn-group">
+              <button id="btn-scroll-left" class="btn btn-sm btn-icon" title="Scroll Left">◀</button>
+              <button id="btn-scroll-right" class="btn btn-sm btn-icon" title="Scroll Right">▶</button>
+            </div>
+            
+            <div class="sheet-toggles">
+              <label class="toggle-label">
+                <input type="checkbox" id="auto-scroll-toggle" checked>
+                <span class="toggle-custom"></span>
+                Auto-Shift
+              </label>
+            </div>
+          </div>
+
+          <!-- Mode Switcher in timeline section (Piano / Guitar) -->
+          <div class="sheet-controls-area">
+            <div class="control-group timeline-mode-group">
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-right: 2px;">Timeline View:</label>
+              <div class="btn-group mode-toggle-group">
+                <button id="mode-guitar" class="btn btn-sm btn-ghost active" data-mode="guitar">🎸 Guitar</button>
+                <button id="mode-piano" class="btn btn-sm btn-ghost" data-mode="piano">🎹 Piano</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flowing Single-Row Chord Stream -->
+        <div class="unified-timeline-wrapper">
+          <div id="unified-timeline-container" class="unified-timeline-container">
+            <div class="empty-state">Loading chords from data/chords.csv...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. INSTRUMENT & HARMONY STAGE -->
+      <section class="stage-grid" id="stage-grid">
+        <!-- HERO CURRENT HARMONY CARD -->
+        <div class="card hero-chord-card">
+          <div class="hero-chord-header">
+            <div class="header-title">
+              <span class="header-icon">✨</span>
+              <span class="subheading">CURRENT HARMONY</span>
+            </div>
+          </div>
+
+          <div class="hero-chord-body">
+            <div id="hero-chord-name" class="chord-display-text">--</div>
+          </div>
+        </div>
+
+        <!-- GUITAR CHORD DIAGRAM CARD -->
+        <div id="guitar-card" class="card guitar-card">
+          <div class="card-header">
+            <div class="header-title">
+              <span class="header-icon">🎸</span>
+              <h2>Guitar Fretboard & Chart</h2>
+            </div>
+
+            <!-- Smart Capo Toolbar -->
+            <div class="capo-controls-group">
+              <div class="capo-select-wrapper">
+                <label for="capo-select" class="capo-label">Capo:</label>
+                <select id="capo-select" class="custom-select capo-select">
+                  <option value="0">None</option>
+                  <option value="1">Capo 1</option>
+                  <option value="2">Capo 2</option>
+                  <option value="3">Capo 3</option>
+                  <option value="4">Capo 4</option>
+                  <option value="5">Capo 5</option>
+                  <option value="6">Capo 6</option>
+                  <option value="7">Capo 7</option>
+                </select>
+              </div>
+              <button id="btn-smart-capo" class="btn btn-sm btn-smart-capo" title="Auto-find easiest open chord capo">
+                ✨ Smart Capo
+              </button>
+            </div>
+          </div>
+          
+          <div class="guitar-wrapper">
+            <div class="guitar-chart-container">
+              <svg id="guitar-chord-svg" viewBox="0 0 240 280" class="guitar-svg"></svg>
+            </div>
+            <div class="guitar-chord-meta">
+              <div class="meta-item">
+                <span class="meta-label">Chord Shape</span>
+                <span id="guitar-chord-title" class="meta-val">--</span>
+              </div>
+              <div class="meta-item" id="capo-sounding-item">
+                <span class="meta-label">Sounding Chord</span>
+                <span id="guitar-sounding-title" class="meta-val">--</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Tab Shape</span>
+                <span id="guitar-tab-text" class="meta-val mono">x-x-x-x-x-x</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Tuning</span>
+                <span class="meta-val mono">E A D G B e</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PIANO VISUALIZER CARD -->
+        <div id="piano-card" class="card piano-card">
+          <div class="card-header">
+            <div class="header-title">
+              <span class="header-icon">🎹</span>
+              <h2>Piano Voicing</h2>
+            </div>
+            <span id="notes-label" class="notes-tag">Notes: --</span>
+          </div>
+          <div class="piano-wrapper">
+            <div id="piano-keyboard" class="piano-keyboard">
+              <!-- Keys generated dynamically by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- FLOATING MASTER PLAYER BAR -->
+    <footer class="player-bar">
+      <div class="player-content">
+        <!-- Play / Pause & Skip Buttons -->
+        <div class="player-controls">
+          <button id="btn-prev-chord" class="player-btn" title="Previous Chord (J)">⏮</button>
+          <button id="btn-play-pause" class="player-btn play-btn-hero" title="Play / Pause (Space)">▶</button>
+          <button id="btn-next-chord" class="player-btn" title="Next Chord (L)">⏭</button>
+        </div>
+
+        <!-- Scrubber and Timers -->
+        <div class="player-scrubber-area">
+          <span id="time-current" class="time-text">0:00</span>
+          <div class="scrubber-bar-container" id="scrubber-container">
+            <input type="range" id="audio-scrubber" min="0" max="100" value="0" step="0.01">
+            <div id="scrubber-fill" class="scrubber-fill"></div>
+          </div>
+          <span id="time-total" class="time-text">0:00</span>
+        </div>
+
+        <!-- Volume & Mute -->
+        <div class="player-volume-area">
+          <button id="btn-mute" class="player-btn btn-sm" title="Mute (M)">🔊</button>
+          <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.9" class="volume-slider">
+        </div>
+      </div>
+    </footer>
+
+    <!-- Hidden native audio element -->
+    <audio id="audio-player" preload="auto"></audio>
+  </div>
+
+  <!-- Modular ES Script -->
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

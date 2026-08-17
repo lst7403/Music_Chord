@@ -1,8 +1,10 @@
-# Music Source Separation & Chord Recognition
+# Music Source Separation & Chord Recognition Web App
 
-This repository contains workflows and setup for:
+This repository contains a full pipeline and interactive web application for:
 1. **Audio Source Separation** using **Demucs** (`htdemucs`) to separate tracks into individual stems (**Vocals**, **Drums**, **Bass**, **Other**) directly into `data/`.
-2. **Musical Chord Recognition** using the **BTC (Bi-directional Transformer for Chord Recognition)** model with Hugging Face integration.
+2. **Musical Chord Recognition** using the **BTC (Bi-directional Transformer for Chord Recognition)** model (`puar-playground/btc-chord`) on combined harmonic accompaniment (**Bass + Other**).
+3. **Interactive FastAPI Web App** (`app.py`) for synchronized real-time chord visualization, interactive piano voicing, dynamic guitar chord fretboard diagrams, multi-stem audio switching, pitch transposition, and scrubbable timeline.
+4. **Notebook Server Control** (`server.ipynb`) to start, monitor, and stop the web server directly inside a Jupyter notebook.
 
 ---
 
@@ -23,20 +25,11 @@ conda activate seperate
 
 ---
 
-### Step 2: Install Dependencies
+### Step 2: Install All Dependencies
 
-#### Option A: Install All Requirements (Demucs + Chord Recognition)
 ```bash
-pip install demucs ipykernel numpy torchaudio soundfile librosa mir_eval scipy pandas huggingface_hub tqdm
+pip install demucs ipykernel numpy torchaudio soundfile librosa transformers huggingface_hub scipy pandas tqdm fastapi uvicorn
 ```
-
-#### Option B: If Demucs is already installed, add only Chord Recognition packages
-```bash
-pip install librosa mir_eval scipy pandas huggingface_hub
-```
-
-> **Note for RTX 50-Series (RTX 5090 / Blackwell `sm_120`)**:
-> Using Python 3.11 with the latest PyTorch / Demucs wheel automatically configures compatible CUDA 13/12.8 kernels, preventing `sm_120` incompatibility warnings.
 
 ---
 
@@ -48,74 +41,36 @@ python -m ipykernel install --user --name seperate --display-name "Python (seper
 
 ---
 
-### Step 4: Verify Installed Packages
+## 🌐 How to Run the Chord Web App
 
-```bash
-python -c "
-packages = ['torch', 'torchaudio', 'demucs', 'librosa', 'mir_eval', 'soundfile', 'scipy', 'numpy', 'huggingface_hub', 'pandas', 'ipykernel']
-for pkg in packages:
-    try:
-        mod = __import__(pkg)
-        print(f'✅ {pkg:<16} : {getattr(mod, \"__version__\", \"installed\")}')
-    except ImportError:
-        print(f'❌ {pkg:<16} : NOT installed')
-"
-```
+### Option A: Using the Notebook Controller (Recommended)
+Open [`server.ipynb`](./server.ipynb):
+- Run **Cell 2 (`start_server()`)** to launch the server asynchronously in the background.
+- Run **Cell 3 (`check_status()`)** to verify health and available stems.
+- Run **Cell 4 (`stop_server()`)** to cleanly stop the server and free port 8000.
 
 ---
 
-## 🚀 How to Run Audio Separation
+### Option B: Using the Command Line
+```bash
+python app.py
+```
+*(Or `uvicorn app:app --host 0.0.0.0 --port 8000`)*
 
-### 1. Using Jupyter Notebook (Recommended)
-1. Open [`separate.ipynb`](./separate.ipynb).
-2. Select the kernel: **`Python (seperate)`**.
-3. Run all cells:
-   - Verifies GPU compatibility.
-   - Separates `data/music.mp3` using `htdemucs`.
-   - Saves stems directly to `data/` (`vocals.wav`, `drums.wav`, `bass.wav`, `other.wav`).
-   - Checks and prints file sizes without bloating the notebook.
+Then open **[http://localhost:8000](http://localhost:8000)** in your browser.
 
 ---
 
-### 2. Using Command Line (CLI)
+## 🎸 Web App Features
 
-```bash
-conda activate seperate
-```
-
-Separate audio and output directly to `data/`:
-```bash
-demucs -n htdemucs -o data --filename "../{stem}.{ext}" data/music.mp3
-```
-
-#### Useful CLI Options:
-- **Save as MP3 instead of WAV**:
-  ```bash
-  demucs -n htdemucs --mp3 -o data --filename "../{stem}.{ext}" data/music.mp3
-  ```
-- **Extract only Vocals + Instrumental (2 stems)**:
-  ```bash
-  demucs -n htdemucs --two-stems vocals -o data --filename "../{stem}.{ext}" data/music.mp3
-  ```
-
----
-
-## 🎸 BTC Chord Recognition Overview
-
-BTC uses a bi-directional transformer architecture on Constant-Q Transform (CQT) audio features to detect chord progressions with high temporal accuracy.
-
-### Quick Inference / Model Loading Test
-
-```python
-import torch
-import librosa
-import soundfile as sf
-from huggingface_hub import hf_hub_download
-
-# Check GPU acceleration
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using device: {device}")
-```
+- **Instrument Mode Switcher**:
+  - 🎸 **Guitar Mode**: Dynamic SVG Guitar Chord Boxes showing 6 strings, frets, finger positions, and barres.
+  - 🎹 **Piano Mode**: Interactive 2-octave keyboard lighting up chord notes (root, 3rd, 5th, 7th).
+  - 🎼 **Both Mode**: View both instruments simultaneously.
+- **Audio Stem Switcher**: Toggle between Full Mix (`music.mp3`), Accompaniment (`bass_other.wav`), Vocals, Drums, Bass, and Other.
+- **Live Transposition**: Transpose the whole song key up/down by semitones in real-time (`-` / `+` / `Reset`).
+- **Scrubbable Color Timeline**: Visual chord blocks positioned along the timeline; click anywhere to jump immediately to that point in the track.
+- **Auto-Scrolling Progression Sheet**: Grid of chord cards with search/filter capabilities.
 
 ---
 
@@ -128,7 +83,24 @@ seperate/
 │   ├── vocals.wav                    # Isolated vocals stem
 │   ├── drums.wav                     # Isolated drums stem
 │   ├── bass.wav                      # Isolated bass line stem
-│   └── other.wav                     # Remaining instruments stem
-├── separate.ipynb                    # Demucs source separation notebook
-└── README.md                         # Installation & usage documentation
+│   ├── other.wav                     # Remaining instruments stem
+│   ├── bass_other.wav                # Combined harmonic accompaniment
+│   └── chords.csv                    # Chord timeline (CSV format)
+├── static/
+│   ├── index.html                    # Frontend user interface
+│   ├── style.css                     # Modern dark glassmorphism theme
+│   ├── app.js                        # Main entry point
+│   └── js/                           # Modular Frontend JavaScript
+│       ├── constants.js              # Pitch classes, colors, chord databases
+│       ├── music.js                  # Transposition, note & shape calculators
+│       ├── guitar.js                 # SVG Guitar Chord & Fretboard renderer
+│       ├── piano.js                  # Virtual Piano keyboard builder
+│       ├── timeline.js               # Timeline overview & progression sheet
+│       └── main.js                   # Application controller & state sync
+├── app.py                            # FastAPI backend server
+├── server.ipynb                      # Server controller notebook (start / check / stop)
+├── separate.ipynb                    # Step 1: Demucs source separation notebook
+├── chord_recognition.ipynb           # Step 2: BTC chord recognition notebook
+├── README.md                         # Installation & usage documentation
+└── .gitignore                        # Ignores data audio while preserving data/ folder
 ```
