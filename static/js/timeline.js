@@ -16,12 +16,12 @@ export function formatTimePrecise(seconds) {
 }
 
 // Generate Mini Guitar Fretboard SVG (Enlarged narrow 6 strings, 4 frets)
-function generateMiniGuitarSvg(chordStr, rootColor) {
-  if (!chordStr || chordStr === 'N') {
+export function generateMiniGuitarSvg(chordInput, rootColor) {
+  if (!chordInput || chordInput === 'N') {
     return `<div class="mini-rest-label">Rest</div>`;
   }
 
-  const chordData = getGuitarChordShape(chordStr);
+  const chordData = typeof chordInput === 'object' && chordInput.frets ? chordInput : getGuitarChordShape(chordInput);
   if (!chordData) {
     return `<div class="mini-rest-label">Custom</div>`;
   }
@@ -161,13 +161,9 @@ function generateMiniPianoSvg(chordStr, rootColor) {
   return svg;
 }
 
-export function renderUnifiedTimeline(container, chords, countLabel, onCardClick, capoFret = 0) {
+export function renderUnifiedTimeline(container, chords, onCardClick, capoFret = 0) {
   if (!container) return;
   container.innerHTML = '';
-
-  if (countLabel) {
-    countLabel.textContent = `${chords.length} Chords`;
-  }
 
   if (!chords || !chords.length) {
     container.innerHTML = '<div class="empty-state">No chord segments found.</div>';

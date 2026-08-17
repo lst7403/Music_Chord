@@ -3,11 +3,11 @@ import { normalizeRoot, getGuitarChordShape, formatChordName, transposeChordName
 
 const STRING_NAMES = ['E', 'A', 'D', 'G', 'B', 'e'];
 
-export function renderGuitarChord(svgElement, titleElement, tabElement, labelElement, chordStr, capoFret = 0, soundingElement = null) {
+export function renderGuitarChord(svgElement, titleElement, tabElement, labelElement, chordInput, capoFret = 0, soundingElement = null) {
   if (!svgElement) return;
   svgElement.innerHTML = '';
 
-  if (!chordStr || chordStr === 'N') {
+  if (!chordInput || chordInput === 'N') {
     if (titleElement) titleElement.textContent = 'No Chord (Silence)';
     if (tabElement) tabElement.textContent = 'x-x-x-x-x-x';
     if (labelElement) labelElement.textContent = 'Frets: --';
@@ -25,13 +25,23 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
     return;
   }
 
-  // Calculate actual shape to finger based on Capo
-  const effectiveChord = capoFret > 0 ? transposeChordName(chordStr, -capoFret) : chordStr;
-  const chordData = getGuitarChordShape(effectiveChord);
+  let effectiveChord = '';
+  let chordData = null;
 
-  if (titleElement) titleElement.textContent = formatChordName(effectiveChord);
-  if (soundingElement) {
-    soundingElement.textContent = capoFret > 0 ? `${formatChordName(chordStr)} (Capo ${capoFret})` : formatChordName(chordStr);
+  if (typeof chordInput === 'object' && chordInput.frets) {
+    chordData = chordInput;
+    effectiveChord = chordInput.name || 'Alternative';
+    if (titleElement) titleElement.textContent = effectiveChord;
+    if (soundingElement) soundingElement.textContent = 'Alternative Voicing';
+  } else {
+    const chordStr = chordInput;
+    effectiveChord = capoFret > 0 ? transposeChordName(chordStr, -capoFret) : chordStr;
+    chordData = getGuitarChordShape(effectiveChord);
+
+    if (titleElement) titleElement.textContent = formatChordName(effectiveChord);
+    if (soundingElement) {
+      soundingElement.textContent = capoFret > 0 ? `${formatChordName(chordStr)} (Capo ${capoFret})` : formatChordName(chordStr);
+    }
   }
 
   if (!chordData) {

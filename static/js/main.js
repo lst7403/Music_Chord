@@ -1,12 +1,13 @@
 import { ROOT_COLORS } from './constants.js';
-import { normalizeRoot, transposeChordName, getChordNotes, formatChordName, findBestCapo } from './music.js';
+import { normalizeRoot, transposeChordName, getChordNotes, formatChordName, findBestCapo, getChordAlternatives } from './music.js';
 import { renderGuitarChord } from './guitar.js';
 import { initPianoKeyboard, highlightPianoNotes } from './piano.js';
 import {
   formatTime,
   formatTimePrecise,
   renderUnifiedTimeline,
-  renderUpcomingChords
+  renderUpcomingChords,
+  generateMiniGuitarSvg
 } from './timeline.js';
 
 // --- STATE ---
@@ -52,16 +53,14 @@ const el = {
   chordTiming: document.getElementById('chord-timing'),
   upcomingChordsContainer: document.getElementById('upcoming-chords-container'),
 
+  altTargetChord: document.getElementById('alt-target-chord'),
+  alternativesGrid: document.getElementById('alternatives-grid'),
+
   notesLabel: document.getElementById('notes-label'),
   pianoKeyboard: document.getElementById('piano-keyboard'),
 
   unifiedTimelineContainer: document.getElementById('unified-timeline-container'),
-  totalChordsCount: document.getElementById('total-chords-count'),
-  btnScrollLeft: document.getElementById('btn-scroll-left'),
-  btnScrollRight: document.getElementById('btn-scroll-right'),
   autoScrollToggle: document.getElementById('auto-scroll-toggle'),
-  chordSearch: document.getElementById('chord-search'),
-  btnClearSearch: document.getElementById('clear-search'),
 
   btnPlayPause: document.getElementById('btn-play-pause'),
   btnPrevChord: document.getElementById('btn-prev-chord'),
@@ -146,7 +145,7 @@ function applyTransposition() {
   }));
 
   el.transposeVal.textContent = (state.transposeSemitones > 0 ? '+' : '') + state.transposeSemitones;
-  
+
   // Calculate and update Smart Capo recommendation
   if (el.btnSmartCapo) {
     const smart = findBestCapo(state.activeChords);
@@ -163,7 +162,7 @@ function applyTransposition() {
     }
   }
 
-  renderUnifiedTimeline(el.unifiedTimelineContainer, state.activeChords, el.totalChordsCount, (item) => {
+  renderUnifiedTimeline(el.unifiedTimelineContainer, state.activeChords, (item) => {
     el.audio.currentTime = item.start + 0.01;
     if (el.audio.paused) el.audio.play().catch(e => console.warn(e));
   }, state.capoFret);
@@ -241,6 +240,7 @@ function onChordChanged(index) {
     highlightPianoNotes(el.pianoKeyboard, el.notesLabel, []);
     renderGuitarChord(el.guitarChordSvg, el.guitarChordTitle, el.guitarTabText, el.guitarFingeringLabel, 'N', state.capoFret, el.guitarSoundingTitle);
     if (el.upcomingChordsContainer) renderUpcomingChords(el.upcomingChordsContainer, []);
+    renderChordAlternatives('N', state.capoFret);
     return;
   }
 
@@ -280,6 +280,89 @@ function onChordChanged(index) {
     const upcoming = state.activeChords.slice(index + 1, index + 5);
     renderUpcomingChords(el.upcomingChordsContainer, upcoming);
   }
+
+  // Update Alternative & Easier Chord Voicings
+  renderChordAlternatives(activeItem.chord, state.capoFret);
+}
+
+// --- ALTERNATIVE & EASIER VOICINGS RENDERER ---
+function renderChordAlternatives(chordStr, capoFret = 0) {
+  if (!el.alternativesGrid) return;
+
+  if (!chordStr || chordStr === 'N') {
+    if (el.altTargetChord) el.altTargetChord.textContent = '--';
+    el.alternativesGrid.innerHTML = `<div class="empty-state">Play audio or click a chord to see alternative fingerings.</div>`;
+    return;
+  }
+
+  const effectiveChord = capoFret > 0 ? transposeChordName(chordStr, -capoFret) : chordStr;
+  const formattedName = formatChordName(effectiveChord);
+  if (el.altTargetChord) {
+    el.altTargetChord.textContent = formattedName + (capoFret > 0 ? ` (Capo ${capoFret})` : '');
+  }
+
+  const alts = getChordAlternatives(chordStr, capoFret);
+  if (!alts || alts.length === 0) {
+    el.alternativesGrid.innerHTML = `
+      <div class="alt-chord-card alt-card-standard">
+        <div class="alt-card-header">
+          <div class="alt-chord-name">${formattedName}</div>
+        </div>
+        <div class="alt-visual-wrapper">
+          ${generateMiniGuitarSvg(effectiveChord, '#38bdf8')}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  el.alternativesGrid.innerHTML = '';
+  const frag = document.createDocumentFragment();
+
+  alts.forEach(alt => {
+    const card = document.createElement('div');
+    card.className = 'alt-chord-card';
+
+    const tabStr = alt.frets.map(f => f === -1 ? 'x' : f.toString()).join('-');
+    const miniSvg = generateMiniGuitarSvg(alt, '#38bdf8');
+
+    card.innerHTML = `
+      <div class="alt-card-header">
+        <div class="alt-chord-name">${alt.name}</div>
+      </div>
+      <div class="alt-visual-wrapper">
+        ${miniSvg}
+      </div>
+      <div class="alt-tab-row">
+        <span class="alt-tab-label">Tab:</span>
+        <span class="alt-tab-val">${tabStr}</span>
+      </div>
+      <button class="btn btn-sm btn-ghost btn-inspect-alt" title="Inspect this voicing on the main guitar fretboard">
+        🔍 Preview Shape
+      </button>
+    `;
+
+    card.addEventListener('click', () => {
+      // Highlight active selection
+      el.alternativesGrid.querySelectorAll('.alt-chord-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+
+      // Preview on main chart
+      renderGuitarChord(
+        el.guitarChordSvg,
+        el.guitarChordTitle,
+        el.guitarTabText,
+        el.guitarFingeringLabel,
+        alt,
+        state.capoFret,
+        el.guitarSoundingTitle
+      );
+    });
+
+    frag.appendChild(card);
+  });
+
+  el.alternativesGrid.appendChild(frag);
 }
 
 // --- EVENT LISTENERS ---
@@ -377,28 +460,6 @@ function setupEventListeners() {
       if (el.capoSelect) el.capoSelect.value = smart.bestCapo.toString();
       applyTransposition();
       onChordChanged(state.currentChordIndex);
-    });
-  }
-
-  if (el.chordSearch) {
-    el.chordSearch.addEventListener('input', (e) => filterChordSheet(e.target.value));
-  }
-  if (el.btnClearSearch) {
-    el.btnClearSearch.addEventListener('click', () => {
-      if (el.chordSearch) el.chordSearch.value = '';
-      filterChordSheet('');
-    });
-  }
-
-  if (el.btnScrollLeft) {
-    el.btnScrollLeft.addEventListener('click', () => {
-      el.unifiedTimelineContainer.scrollBy({ left: -320, behavior: 'smooth' });
-    });
-  }
-
-  if (el.btnScrollRight) {
-    el.btnScrollRight.addEventListener('click', () => {
-      el.unifiedTimelineContainer.scrollBy({ left: 320, behavior: 'smooth' });
     });
   }
 

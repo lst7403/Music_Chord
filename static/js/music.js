@@ -2,7 +2,7 @@
    ChordVision — Musical Calculations & Transposition Logic
    ========================================================= */
 
-import { PITCH_CLASSES, FLATS_TO_SHARPS, CHORD_INTERVALS, GUITAR_CHORDS_DB } from './constants.js';
+import { PITCH_CLASSES, FLATS_TO_SHARPS, CHORD_INTERVALS, GUITAR_CHORDS_DB, CHORD_ALTERNATIVES_DB } from './constants.js';
 
 export function normalizeRoot(root) {
   if (FLATS_TO_SHARPS[root]) return FLATS_TO_SHARPS[root];
@@ -167,4 +167,40 @@ export function findBestCapo(chords) {
     openPercent: best.openPercent,
     recommendations,
   };
+}
+
+// Get Alternative & Easier Chord Voicings
+export function getChordAlternatives(chordStr, capoFret = 0) {
+  if (!chordStr || chordStr === 'N') return [];
+
+  const effectiveChord = capoFret > 0 ? transposeChordName(chordStr, -capoFret) : chordStr;
+  let cleanChord = effectiveChord;
+  if (cleanChord.includes('/')) {
+    cleanChord = cleanChord.split('/')[0];
+  }
+
+  // Direct match in alternatives DB
+  if (CHORD_ALTERNATIVES_DB[cleanChord]) {
+    return CHORD_ALTERNATIVES_DB[cleanChord];
+  }
+
+  // Match normalized root
+  const parts = cleanChord.split(':');
+  const normRoot = normalizeRoot(parts[0]);
+  const quality = parts.length > 1 ? ':' + parts[1] : '';
+  const normName = normRoot + quality;
+
+  if (CHORD_ALTERNATIVES_DB[normName]) {
+    return CHORD_ALTERNATIVES_DB[normName];
+  }
+
+  if (quality.includes('min') && CHORD_ALTERNATIVES_DB[normRoot + ':min']) {
+    return CHORD_ALTERNATIVES_DB[normRoot + ':min'];
+  }
+
+  if (CHORD_ALTERNATIVES_DB[normRoot]) {
+    return CHORD_ALTERNATIVES_DB[normRoot];
+  }
+
+  return [];
 }
