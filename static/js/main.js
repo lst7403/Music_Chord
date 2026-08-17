@@ -9,6 +9,7 @@ import {
   renderUpcomingChords,
   generateMiniGuitarSvg
 } from './timeline.js';
+import { initUploadModal } from './upload.js';
 
 // --- STATE ---
 const state = {
@@ -493,6 +494,23 @@ function init() {
   initPianoKeyboard(el.pianoKeyboard);
   setInstrumentMode('guitar');
   setupEventListeners();
+  initUploadModal({
+    onProcessingComplete: async () => {
+      try {
+        if (el.audio) {
+          el.audio.pause();
+          el.audio.currentTime = 0;
+        }
+        await fetchStems();
+        await fetchChords();
+        if (el.audio) {
+          el.audio.play().catch(e => console.warn(e));
+        }
+      } catch (err) {
+        console.error('Error reloading after AI processing:', err);
+      }
+    }
+  });
   fetchStems();
   fetchChords();
 }

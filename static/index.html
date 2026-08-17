@@ -22,6 +22,12 @@
       </div>
 
       <div class="header-controls">
+        <!-- Upload Song Action Button -->
+        <button id="btn-open-upload" class="btn btn-upload-hero" title="Upload any song for AI stem separation and chord detection">
+          <span class="upload-icon">✨</span>
+          <span>Upload Song</span>
+        </button>
+
         <!-- Stem Selector Dropdown -->
         <div class="control-group">
           <label for="stem-select">Audio Track:</label>
@@ -227,6 +233,132 @@
         </div>
       </section>
     </main>
+
+    <!-- UPLOAD MUSIC MODAL -->
+    <div id="upload-modal-overlay" class="modal-overlay" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="modal-icon">🎵</div>
+            <div>
+              <h3>AI Music Separation & Chord Analysis</h3>
+              <p class="modal-subtitle">Upload any song to extract stems and auto-detect chords using RTX GPU</p>
+            </div>
+          </div>
+          <button id="btn-close-upload" class="btn-modal-close" title="Close">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- ERROR BANNER -->
+          <div id="upload-error-banner" class="upload-error-banner" style="display: none;">
+            <span class="error-icon">⚠️</span>
+            <span id="upload-error-msg" class="error-text">An error occurred</span>
+            <button id="btn-retry-upload" class="btn btn-sm btn-ghost">Reset</button>
+          </div>
+
+          <!-- 1. FILE SELECTION FORM SECTION -->
+          <div id="upload-form-section" class="upload-form-section">
+            <div id="upload-dropzone" class="upload-dropzone">
+              <div class="dropzone-icon">🚀</div>
+              <h4>Drag & drop song here</h4>
+              <p class="dropzone-hint">Supports MP3, WAV, M4A, FLAC, OGG, AAC</p>
+              <button type="button" class="btn btn-sm btn-select-file">Browse Audio File</button>
+              <input type="file" id="music-file-input" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" style="display: none;">
+            </div>
+
+            <div id="file-details" class="file-details-card" style="display: none;">
+              <div class="file-info-group">
+                <span class="file-type-badge">AUDIO</span>
+                <div class="file-text-info">
+                  <span id="selected-file-name" class="file-name">song.mp3</span>
+                  <span id="selected-file-size" class="file-size">0.00 MB</span>
+                </div>
+              </div>
+              <button id="btn-remove-file" class="btn-remove-file" title="Remove file">✕</button>
+            </div>
+
+            <div class="upload-feature-pills">
+              <div class="feature-pill"><span>🎛️</span> Demucs 4-Stem Separation</div>
+              <div class="feature-pill"><span>🎹</span> Accompaniment Mixing</div>
+              <div class="feature-pill"><span>🎼</span> BTC Transformer Chords</div>
+            </div>
+
+            <div class="modal-actions">
+              <button id="btn-start-upload" class="btn btn-hero-action" disabled>
+                <span>⚡ Start AI Processing</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. LIVE PROGRESS TRACKING SECTION -->
+          <div id="upload-progress-section" class="upload-progress-section" style="display: none;">
+            <div class="progress-header-info">
+              <div class="progress-status-container">
+                <div class="spinner-ring"></div>
+                <span id="progress-status-text" class="progress-title">Processing Audio...</span>
+              </div>
+              <span id="progress-elapsed-time" class="progress-time-badge">0s elapsed</span>
+            </div>
+
+            <div class="progress-bar-track">
+              <div id="upload-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+            <div class="progress-percentage-label">
+              <span>Overall Progress</span>
+              <span id="upload-progress-percent" class="percent-val">0%</span>
+            </div>
+
+            <!-- MULTI-STEP CHECKLIST -->
+            <div class="pipeline-steps-list">
+              <div id="step-converting" class="pipeline-step-row">
+                <div class="step-icon-col">📥</div>
+                <div class="step-content-col">
+                  <div class="step-name">1. Upload & Audio Standardization</div>
+                  <div class="step-desc">FFmpeg 44.1kHz High-Fidelity Audio Conversion</div>
+                </div>
+                <span class="step-badge">Pending</span>
+              </div>
+
+              <div id="step-separating" class="pipeline-step-row">
+                <div class="step-icon-col">🎛️</div>
+                <div class="step-content-col">
+                  <div class="step-name">2. Demucs AI Stem Separation</div>
+                  <div class="step-desc">Extract Vocals, Bass, Drums & Other on GPU</div>
+                </div>
+                <span class="step-badge">Pending</span>
+              </div>
+
+              <div id="step-combining" class="pipeline-step-row">
+                <div class="step-icon-col">🎹</div>
+                <div class="step-content-col">
+                  <div class="step-name">3. Harmonic Stem Synthesis</div>
+                  <div class="step-desc">Combine Bass + Other into clean accompaniment</div>
+                </div>
+                <span class="step-badge">Pending</span>
+              </div>
+
+              <div id="step-recognizing" class="pipeline-step-row">
+                <div class="step-icon-col">🎼</div>
+                <div class="step-content-col">
+                  <div class="step-name">4. BTC Transformer Chord Recognition</div>
+                  <div class="step-desc">170-Chord AI Vocabulary Detection</div>
+                </div>
+                <span class="step-badge">Pending</span>
+              </div>
+
+              <div id="step-completed" class="pipeline-step-row">
+                <div class="step-icon-col">✨</div>
+                <div class="step-content-col">
+                  <div class="step-name">5. Ready & Visualized</div>
+                  <div class="step-desc">Reloading live timeline and audio stems</div>
+                </div>
+                <span class="step-badge">Pending</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Hidden native audio element -->
     <audio id="audio-player" preload="auto"></audio>

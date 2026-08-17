@@ -1,12 +1,16 @@
 import os
 import csv
+import uuid
+import threading
 from pathlib import Path
 from typing import List, Dict, Optional
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, BackgroundTasks
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+
+from pipeline import get_pipeline_status, run_pipeline_task, update_status
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -29,15 +33,76 @@ STATIC_DIR.mkdir(parents=True, exist_ok=True)
 # Mount static assets
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac", ".wma", ".aiff", ".opus"}
+
 
 def get_safe_data_path(filename: str) -> Path:
     """Ensure requested file resides strictly within DATA_DIR to prevent path traversal."""
-    # Sanitize and resolve
     clean_name = Path(filename).name
     file_path = (DATA_DIR / clean_name).resolve()
     if not str(file_path).startswith(str(DATA_DIR.resolve())):
         raise HTTPException(status_code=400, detail="Invalid file path")
     return file_path
+
+
+@app.get("/api/pipeline/status")
+def pipeline_status():
+    """Get current status of audio processing pipeline."""
+    return get_pipeline_status()
+
+
+@app.post("/api/upload")
+async def upload_music(file: UploadFile = File(...)):
+    """Upload new music file and trigger Demucs separation & chord recognition pipeline."""
+    current_status = get_pipeline_status()
+    if current_status["status"] == "running":
+        raise HTTPException(
+            status_code=409,
+            detail="A processing task is already running. Please wait for it to finish."
+        )
+
+    # Validate file extension
+    orig_filename = file.filename or "uploaded_music.mp3"
+    ext = Path(orig_filename).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file format '{ext}'. Allowed formats: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+        )
+
+    # Save to a temporary file in data directory
+    temp_filename = f"upload_temp_{uuid.uuid4().hex[:8]}{ext}"
+    temp_file_path = DATA_DIR / temp_filename
+
+    try:
+        with open(temp_file_path, "wb") as f:
+            while chunk := await file.read(1024 * 1024):  # 1MB chunks
+                f.write(chunk)
+    except Exception as e:
+        if temp_file_path.exists():
+            temp_file_path.unlink()
+        raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {str(e)}")
+
+    # Start background processing thread
+    thread = threading.Thread(
+        target=run_pipeline_task,
+        args=(temp_file_path, orig_filename),
+        daemon=True
+    )
+    thread.start()
+
+    return {
+        "success": True,
+        "message": f"Uploaded {orig_filename}. AI stem separation & chord analysis started.",
+        "filename": orig_filename,
+    }
+
+
+@app.post("/api/pipeline/reset")
+def reset_pipeline():
+    """Reset pipeline state if it was in error."""
+    update_status("idle", 0, "Ready", status="idle")
+    return {"success": True, "message": "Pipeline state reset."}
 
 
 @app.get("/api/chords")
@@ -113,7 +178,7 @@ def get_stems():
                 "id": stem["id"],
                 "name": stem["name"],
                 "filename": target_file.name,
-                "url": f"/data/{target_file.name}",
+                "url": f"/data/{target_file.name}?t={int(target_file.stat().st_mtime)}",
                 "size_mb": size_mb,
                 "icon": stem["icon"]
             })
@@ -145,4 +210,4 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=True)
