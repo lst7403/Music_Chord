@@ -27,8 +27,12 @@ conda activate seperate
 
 ### Step 2: Install All Dependencies
 
+then install torch and torchaudio with your gpu cuda version
+
 ```bash
-pip install demucs ipykernel numpy torchaudio soundfile librosa transformers huggingface_hub scipy pandas tqdm fastapi uvicorn
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu130
+pip install demucs
+pip install ipykernel numpy soundfile librosa transformers huggingface_hub scipy pandas tqdm fastapi uvicorn python-multipart
 ```
 
 ---
