@@ -1,18 +1,21 @@
-import { ROOT_COLORS } from './constants.js';
+import { ROOT_COLORS, PITCH_CLASSES } from './constants.js';
 import { normalizeRoot, getGuitarChordShape, formatChordName, transposeChordName } from './music.js';
 
 const STRING_NAMES = ['E', 'A', 'D', 'G', 'B', 'e'];
+const OPEN_STRING_INDICES = [4, 9, 2, 7, 11, 4]; // E2, A2, D3, G3, B3, E4
 
-export function renderGuitarChord(svgElement, titleElement, tabElement, labelElement, chordInput, capoFret = 0, soundingElement = null) {
+export function renderGuitarChord(svgElement, titleElement, stringNotesElement, labelElement, chordInput, capoFret = 0, soundingElement = null) {
   if (!svgElement) return;
   svgElement.innerHTML = '';
 
   if (!chordInput || chordInput === 'N') {
     if (titleElement) titleElement.textContent = 'No Chord (Silence)';
-    if (tabElement) tabElement.textContent = 'x-x-x-x-x-x';
+    if (stringNotesElement) {
+      stringNotesElement.innerHTML = '<span class="string-note-badge muted">No Chord</span>';
+    }
     if (labelElement) labelElement.textContent = 'Frets: --';
     if (soundingElement) soundingElement.textContent = '--';
-    
+
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', '120');
     text.setAttribute('y', '140');
@@ -45,20 +48,41 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
   }
 
   if (!chordData) {
-    if (tabElement) tabElement.textContent = 'Custom Voicing';
+    if (stringNotesElement) {
+      stringNotesElement.innerHTML = '<span class="string-note-badge muted">Custom Voicing</span>';
+    }
     if (labelElement) labelElement.textContent = 'Frets: --';
     return;
   }
 
   const baseFret = chordData.baseFret || 1;
 
-  // Tab text (e.g. x-3-2-0-1-0)
-  const tabStr = chordData.frets.map(f => f === -1 ? 'x' : f.toString()).join('-');
-  if (tabElement) tabElement.textContent = tabStr;
+  // Render Note of Each String (6th to 1st)
+  if (stringNotesElement) {
+    stringNotesElement.innerHTML = '';
+    chordData.frets.forEach((fret, sIdx) => {
+      const badge = document.createElement('div');
+      badge.className = 'string-note-badge';
+      const strName = STRING_NAMES[sIdx];
+
+      if (fret === -1) {
+        badge.classList.add('muted');
+        badge.innerHTML = `<span class="str-label">${strName}</span><span class="str-note">✕</span>`;
+      } else {
+        const pitchIdx = (OPEN_STRING_INDICES[sIdx] + fret) % 12;
+        const noteName = PITCH_CLASSES[pitchIdx];
+        const noteCol = ROOT_COLORS[noteName] || '#38bdf8';
+        badge.style.setProperty('--note-color', noteCol);
+        badge.innerHTML = `<span class="str-label">${strName}</span><span class="str-note">${noteName}</span>`;
+      }
+      stringNotesElement.appendChild(badge);
+    });
+  }
+
   if (labelElement) labelElement.textContent = `Base Fret: ${baseFret}`;
 
   // SVG Dimensions & Grid Constants
-  const xOffset = 52;
+  const xOffset = 58;
   const yOffset = 55;
   const width = 135;
   const height = 165;
@@ -73,7 +97,7 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
   // Capo Fret Gold Header in SVG (when capo > 0)
   if (capoFret > 0) {
     const capoHeader = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    capoHeader.setAttribute('x', '120');
+    capoHeader.setAttribute('x', '125');
     capoHeader.setAttribute('y', '22');
     capoHeader.setAttribute('text-anchor', 'middle');
     capoHeader.setAttribute('fill', '#f59e0b');
@@ -99,7 +123,6 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
 
   // Nut (thick top line for open 1st fret) OR Base Fret Pill Badge on Left (for fret > 1)
   if (baseFret === 1) {
-    // Open position thick Nut line (standard guitar diagram) - gold when Capo active
     const nut = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     nut.setAttribute('x1', xOffset - 1);
     nut.setAttribute('y1', yOffset);
@@ -110,11 +133,11 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
     nut.setAttribute('stroke-linecap', 'round');
     svgElement.appendChild(nut);
   } else {
-    // Higher position: glowing Cyan Base Fret Pill Badge on Left
+    // Higher position: Base Fret Pill Badge shifted far left to avoid any dot overlap
     const badgeBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    badgeBg.setAttribute('x', '10');
+    badgeBg.setAttribute('x', '6');
     badgeBg.setAttribute('y', yOffset + 5);
-    badgeBg.setAttribute('width', '36');
+    badgeBg.setAttribute('width', '38');
     badgeBg.setAttribute('height', '22');
     badgeBg.setAttribute('rx', '5');
     badgeBg.setAttribute('fill', 'rgba(6, 182, 212, 0.18)');
@@ -123,7 +146,7 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
     svgElement.appendChild(badgeBg);
 
     const fretText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    fretText.setAttribute('x', '28');
+    fretText.setAttribute('x', '25');
     fretText.setAttribute('y', yOffset + 20);
     fretText.setAttribute('fill', '#38bdf8');
     fretText.setAttribute('font-size', '12');
@@ -146,7 +169,7 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
     svgElement.appendChild(line);
   }
 
-  // Vertical Strings & Bottom Tuning Labels
+  // Vertical Strings (No bottom letters)
   for (let s = 0; s < numStrings; s++) {
     const sx = xOffset + s * stringGap;
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -157,18 +180,6 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
     line.setAttribute('stroke', '#64748b');
     line.setAttribute('stroke-width', s < 3 ? '2.5' : '1.5');
     svgElement.appendChild(line);
-
-    // Tuning Letter below string
-    const tuningText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tuningText.setAttribute('x', sx);
-    tuningText.setAttribute('y', yOffset + height + 18);
-    tuningText.setAttribute('text-anchor', 'middle');
-    tuningText.setAttribute('fill', '#64748b');
-    tuningText.setAttribute('font-size', '11');
-    tuningText.setAttribute('font-weight', '700');
-    tuningText.setAttribute('font-family', "'JetBrains Mono', monospace");
-    tuningText.textContent = STRING_NAMES[s];
-    svgElement.appendChild(tuningText);
   }
 
   // Barre Indicator
@@ -176,7 +187,6 @@ export function renderGuitarChord(svgElement, titleElement, tabElement, labelEle
     chordData.barres.forEach(barreFret => {
       const relativeFret = barreFret - baseFret + 1;
       if (relativeFret >= 1 && relativeFret <= numFrets) {
-        // Find the string range fretted at or above the barre fret (excluding muted strings)
         let minString = -1;
         let maxString = -1;
 

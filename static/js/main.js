@@ -10,9 +10,11 @@ import {
   generateMiniGuitarSvg
 } from './timeline.js';
 import { initUploadModal } from './upload.js';
+import { initChordLibrary, navigateToChordInLibrary } from './chord-library.js';
 
 // --- STATE ---
 const state = {
+  currentView: 'visualizer', // 'visualizer' | 'library'
   audio: document.getElementById('audio-player'),
   rawChords: [],
   activeChords: [],
@@ -31,6 +33,11 @@ const state = {
 // --- DOM ELEMENTS ---
 const el = {
   audio: document.getElementById('audio-player'),
+  navTabVisualizer: document.getElementById('nav-tab-visualizer'),
+  navTabLibrary: document.getElementById('nav-tab-library'),
+  viewVisualizer: document.getElementById('view-visualizer'),
+  viewChordLibrary: document.getElementById('view-chord-library'),
+  btnJumpLibrary: document.getElementById('btn-jump-library'),
   stemSelect: document.getElementById('stem-select'),
   speedSelect: document.getElementById('speed-select'),
   transposeVal: document.getElementById('transpose-val'),
@@ -44,7 +51,7 @@ const el = {
   guitarChordSvg: document.getElementById('guitar-chord-svg'),
   guitarChordTitle: document.getElementById('guitar-chord-title'),
   guitarSoundingTitle: document.getElementById('guitar-sounding-title'),
-  guitarTabText: document.getElementById('guitar-tab-text'),
+  guitarStringNotes: document.getElementById('guitar-string-notes'),
   guitarFingeringLabel: document.getElementById('guitar-fingering-label'),
   capoSelect: document.getElementById('capo-select'),
   btnSmartCapo: document.getElementById('btn-smart-capo'),
@@ -239,7 +246,7 @@ function onChordChanged(index) {
     if (el.heroChordDesc) el.heroChordDesc.textContent = 'Audio Stopped / Paused';
     if (el.chordTiming) el.chordTiming.textContent = '0:00.00 / 0:00.00';
     highlightPianoNotes(el.pianoKeyboard, el.notesLabel, []);
-    renderGuitarChord(el.guitarChordSvg, el.guitarChordTitle, el.guitarTabText, el.guitarFingeringLabel, 'N', state.capoFret, el.guitarSoundingTitle);
+    renderGuitarChord(el.guitarChordSvg, el.guitarChordTitle, el.guitarStringNotes, el.guitarFingeringLabel, 'N', state.capoFret, el.guitarSoundingTitle);
     if (el.upcomingChordsContainer) renderUpcomingChords(el.upcomingChordsContainer, []);
     renderChordAlternatives('N', state.capoFret);
     return;
@@ -256,7 +263,7 @@ function onChordChanged(index) {
   // Update Instruments
   const chordNotes = getChordNotes(activeItem.chord);
   highlightPianoNotes(el.pianoKeyboard, el.notesLabel, chordNotes);
-  renderGuitarChord(el.guitarChordSvg, el.guitarChordTitle, el.guitarTabText, el.guitarFingeringLabel, activeItem.chord, state.capoFret, el.guitarSoundingTitle);
+  renderGuitarChord(el.guitarChordSvg, el.guitarChordTitle, el.guitarStringNotes, el.guitarFingeringLabel, activeItem.chord, state.capoFret, el.guitarSoundingTitle);
 
   // Active Card & Auto-Shift in Single Row
   const activeCard = document.getElementById(`chord-card-${index}`);
@@ -352,7 +359,7 @@ function renderChordAlternatives(chordStr, capoFret = 0) {
       renderGuitarChord(
         el.guitarChordSvg,
         el.guitarChordTitle,
-        el.guitarTabText,
+        el.guitarStringNotes,
         el.guitarFingeringLabel,
         alt,
         state.capoFret,
@@ -465,6 +472,24 @@ function setupEventListeners() {
   }
 
   // Smooth horizontal scroll with mouse wheel
+  // Navigation View Tabs (Visualizer vs Guitar Chord Library)
+  if (el.navTabVisualizer) {
+    el.navTabVisualizer.addEventListener('click', () => switchView('visualizer'));
+  }
+  if (el.navTabLibrary) {
+    el.navTabLibrary.addEventListener('click', () => switchView('library'));
+  }
+  if (el.btnJumpLibrary) {
+    el.btnJumpLibrary.addEventListener('click', () => {
+      let chordToOpen = 'C';
+      if (state.currentChordIndex >= 0 && state.activeChords[state.currentChordIndex]) {
+        chordToOpen = state.activeChords[state.currentChordIndex].chord;
+      }
+      switchView('library');
+      navigateToChordInLibrary(chordToOpen);
+    });
+  }
+
   if (el.unifiedTimelineContainer) {
     el.unifiedTimelineContainer.addEventListener('wheel', (e) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -489,11 +514,25 @@ function setupEventListeners() {
   });
 }
 
+function switchView(viewName) {
+  state.currentView = viewName;
+  const isVis = viewName === 'visualizer';
+
+  if (el.navTabVisualizer) el.navTabVisualizer.classList.toggle('active', isVis);
+  if (el.navTabLibrary) el.navTabLibrary.classList.toggle('active', !isVis);
+
+  if (el.viewVisualizer) el.viewVisualizer.style.display = isVis ? 'flex' : 'none';
+  if (el.viewChordLibrary) el.viewChordLibrary.style.display = isVis ? 'none' : 'block';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // --- INITIALIZE ---
 function init() {
   initPianoKeyboard(el.pianoKeyboard);
   setInstrumentMode('guitar');
   setupEventListeners();
+  initChordLibrary('chord-library-content');
   initUploadModal({
     onProcessingComplete: async () => {
       try {

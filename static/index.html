@@ -21,6 +21,19 @@
         </div>
       </div>
 
+      <!-- MAIN APP VIEW NAVIGATION TABS -->
+      <nav class="nav-view-tabs">
+        <button id="nav-tab-visualizer" class="nav-tab-btn active" title="Song Audio Visualizer & Realtime Chord Detection">
+          <span class="tab-icon">🎼</span>
+          <span>Song Visualizer</span>
+        </button>
+        <button id="nav-tab-library" class="nav-tab-btn" title="Complete Guitar Chord & Voicings Encyclopedia (CHORD_ALTERNATIVES_DB)">
+          <span class="tab-icon">🎸</span>
+          <span>Guitar Chord Library</span>
+          <span class="tab-badge">340+ Voicings</span>
+        </button>
+      </nav>
+
       <div class="header-controls">
         <!-- Upload Song Action Button -->
         <button id="btn-open-upload" class="btn btn-upload-hero" title="Upload any song for AI stem separation and chord detection">
@@ -29,7 +42,7 @@
         </button>
 
         <!-- Stem Selector Dropdown -->
-        <div class="control-group">
+        <div class="control-group" id="stem-select-group">
           <label for="stem-select">Audio Track:</label>
           <select id="stem-select" class="custom-select">
             <option value="loading">Loading audio tracks...</option>
@@ -37,7 +50,7 @@
         </div>
 
         <!-- Transpose Controller -->
-        <div class="control-group transpose-group">
+        <div class="control-group transpose-group" id="transpose-group">
           <label>Transpose:</label>
           <div class="btn-group">
             <button id="transpose-down" class="btn btn-sm btn-icon" title="Transpose Down 1 Semitone">-</button>
@@ -48,7 +61,7 @@
         </div>
 
         <!-- Speed Selector -->
-        <div class="control-group">
+        <div class="control-group" id="speed-select-group">
           <label for="speed-select">Speed:</label>
           <select id="speed-select" class="custom-select custom-select-sm">
             <option value="0.5">0.5x</option>
@@ -61,8 +74,8 @@
       </div>
     </header>
 
-    <!-- MAIN CONTENT -->
-    <main class="main-layout">
+    <!-- 1. SONG VISUALIZER MAIN CONTENT VIEW -->
+    <main class="main-layout" id="view-visualizer">
       <!-- 1. AUDIO PLAYER BAR -->
       <section class="card player-bar">
         <div class="player-content">
@@ -187,13 +200,11 @@
                 <span class="meta-label">Sounding Chord</span>
                 <span id="guitar-sounding-title" class="meta-val">--</span>
               </div>
-              <div class="meta-item">
-                <span class="meta-label">Tab Shape</span>
-                <span id="guitar-tab-text" class="meta-val mono">x-x-x-x-x-x</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Tuning</span>
-                <span class="meta-val mono">E A D G B e</span>
+              <div class="meta-item string-notes-meta-item" id="guitar-string-notes-item">
+                <span class="meta-label">String Notes (6th → 1st)</span>
+                <div id="guitar-string-notes" class="guitar-string-notes-row">
+                  <span class="string-note-badge">--</span>
+                </div>
               </div>
             </div>
           </div>
@@ -226,12 +237,22 @@
               <span class="subheading">All fretboard positions, CAGED shapes & easy variations for <strong id="alt-target-chord" class="alt-target-highlight">--</strong></span>
             </div>
           </div>
+          <button id="btn-jump-library" class="btn btn-sm btn-ghost btn-jump-lib" title="Open this chord in the Full Guitar Chord Library">
+            <span>📚 Browse in Chord Library →</span>
+          </button>
         </div>
 
         <div id="alternatives-grid" class="alternatives-grid">
           <div class="empty-state">Play audio or click a chord to see all pressing patterns & fingerings.</div>
         </div>
       </section>
+    </main>
+
+    <!-- 2. GUITAR CHORD LIBRARY VIEW (CHORD_ALTERNATIVES_DB) -->
+    <main class="chord-library-view" id="view-chord-library" style="display: none;">
+      <div id="chord-library-content">
+        <!-- Injected dynamically by chord-library.js -->
+      </div>
     </main>
 
     <!-- UPLOAD MUSIC MODAL -->

@@ -28,7 +28,7 @@ export function generateMiniGuitarSvg(chordInput, rootColor) {
 
   const baseFret = chordData.baseFret || 1;
 
-  const xOffset = 16;
+  const xOffset = 18;
   const yOffset = 15;
   const width = 54;
   const height = 66;
@@ -41,7 +41,7 @@ export function generateMiniGuitarSvg(chordInput, rootColor) {
 
   // Base Fret indicator on the left
   if (baseFret > 1) {
-    svg += `<text x="6" y="${yOffset + 11}" fill="#38bdf8" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace" text-anchor="middle">${baseFret}</text>`;
+    svg += `<text x="7" y="${yOffset + 10}" fill="#38bdf8" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace" text-anchor="middle">${baseFret}</text>`;
   }
 
   // Fretboard rect

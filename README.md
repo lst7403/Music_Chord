@@ -37,14 +37,6 @@ pip install ipykernel numpy soundfile librosa transformers huggingface_hub scipy
 
 ---
 
-### Step 3: Register Jupyter Kernel
-
-```bash
-python -m ipykernel install --user --name seperate --display-name "Python (seperate)"
-```
-
----
-
 ## 🌐 How to Run the Chord Web App
 
 ### Option A: Using the Notebook Controller (Recommended)
@@ -59,7 +51,7 @@ Open [`server.ipynb`](./server.ipynb):
 ```bash
 python app.py
 ```
-*(Or `uvicorn app:app --host 0.0.0.0 --port 8000`)*
+*(Or `uvicorn app:app --host 127.0.0.1 --port 8000`)*
 
 Then open **[http://localhost:8000](http://localhost:8000)** in your browser.
 
