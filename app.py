@@ -156,23 +156,34 @@ def get_stems():
     """List available audio stems in data directory."""
     expected_stems = [
         {"id": "music", "name": "Full Mix (Original)", "file": "music.mp3", "icon": "🎵"},
-        {"id": "accompaniment", "name": "Accompaniment (Bass+Other)", "file": "bass_other.wav", "fallback": "accompaniment.wav", "icon": "🎹"},
+        {"id": "instrumental", "name": "Instrumental (No Vocals)", "file": "instrumental.wav", "icon": "🎼"},
+        {"id": "accompaniment", "name": "Accompaniment (Bass+Other)", "file": "bass_other.wav", "icon": "🎹"},
         {"id": "vocals", "name": "Vocals", "file": "vocals.wav", "icon": "🎤"},
         {"id": "drums", "name": "Drums", "file": "drums.wav", "icon": "🥁"},
         {"id": "bass", "name": "Bass", "file": "bass.wav", "icon": "🎸"},
-        {"id": "other", "name": "Other Instruments", "file": "other.wav", "icon": "🎺"},
+        {"id": "other", "name": "Other", "file": "other.wav", "icon": "🎺"},
     ]
 
     available = []
+    seen_files = set()
+
+    # 1. Add standard stems first with predefined friendly names and icons
     for stem in expected_stems:
         target_file = DATA_DIR / stem["file"]
         if not target_file.exists() and "fallback" in stem:
             fallback_file = DATA_DIR / stem["fallback"]
             if fallback_file.exists():
                 target_file = fallback_file
-                stem["file"] = stem["fallback"]
+
+        # Case-insensitive search fallback
+        if not target_file.exists():
+            for f in DATA_DIR.iterdir():
+                if f.is_file() and f.name.lower() in [stem["file"].lower(), stem.get("fallback", "").lower()]:
+                    target_file = f
+                    break
 
         if target_file.exists():
+            seen_files.add(target_file.name.lower())
             size_mb = round(target_file.stat().st_size / (1024 * 1024), 2)
             available.append({
                 "id": stem["id"],
@@ -181,6 +192,24 @@ def get_stems():
                 "url": f"/data/{target_file.name}?t={int(target_file.stat().st_mtime)}",
                 "size_mb": size_mb,
                 "icon": stem["icon"]
+            })
+
+    # 2. Dynamically add any additional custom audio files in data/
+    AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac", ".wma", ".aiff", ".opus"}
+    for f in sorted(DATA_DIR.iterdir()):
+        if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS and f.name.lower() not in seen_files:
+            if f.name.startswith("upload_temp_"):
+                continue
+            seen_files.add(f.name.lower())
+            size_mb = round(f.stat().st_size / (1024 * 1024), 2)
+            clean_name = f.stem.replace("_", " ").replace("-", " ").title()
+            available.append({
+                "id": f.stem.lower(),
+                "name": clean_name,
+                "filename": f.name,
+                "url": f"/data/{f.name}?t={int(f.stat().st_mtime)}",
+                "size_mb": size_mb,
+                "icon": "🎧"
             })
 
     return {"stems": available}

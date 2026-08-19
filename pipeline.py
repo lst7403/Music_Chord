@@ -119,11 +119,30 @@ def combine_bass_and_other(bass_path: Path, other_path: Path, output_path: Path)
     sf.write(str(output_path), combined, sr_bass)
 
 
+def combine_instrumental(drums_path: Path, bass_path: Path, other_path: Path, output_path: Path):
+    """Merge drums, bass, and other stems into full instrumental backing track."""
+    drums_audio, sr_drums = sf.read(str(drums_path))
+    bass_audio, sr_bass = sf.read(str(bass_path))
+    other_audio, sr_other = sf.read(str(other_path))
+
+    min_len = min(len(drums_audio), len(bass_audio), len(other_audio))
+    combined = drums_audio[:min_len] + bass_audio[:min_len] + other_audio[:min_len]
+
+    max_val = np.max(np.abs(combined))
+    if max_val > 1.0:
+        combined = combined / max_val
+
+    sf.write(str(output_path), combined, sr_drums)
+
+
 @torch.no_grad()
-def predict_chords(btc_wrapper, audio_file: Path, progress_callback=None):
+def predict_chords(btc_wrapper, audio_file: Path, progress_callback=None, show_progress: bool = False):
     """Extract chords from audio using BTC model."""
     import importlib
     features = importlib.import_module("btc_src.features")
+
+    if show_progress:
+        print("1/2 Extracting log-CQT audio spectrogram features...")
 
     feat = features.audio_to_features(
         str(audio_file),
@@ -149,7 +168,14 @@ def predict_chords(btc_wrapper, audio_file: Path, progress_callback=None):
     start_time = 0.0
     prev = None
 
-    for t in range(num_instance):
+    if show_progress:
+        from tqdm.auto import tqdm
+        print(f"2/2 Running Transformer inference across {num_instance} audio chunks:")
+        iterator = tqdm(range(num_instance), desc="Predicting Chords", unit="chunk")
+    else:
+        iterator = range(num_instance)
+
+    for t in iterator:
         attn_out, _ = btc_wrapper.model.self_attn_layers(x[:, n * t : n * (t + 1), :])
         pred, _ = btc_wrapper.model.output_layer(attn_out)
         pred = pred.squeeze()
@@ -214,17 +240,22 @@ def run_pipeline_task(temp_audio_file: Path, original_filename: str):
         update_status("separating", 25, "Running Demucs AI stem separation (Vocals, Drums, Bass, Other)...")
         run_demucs_separation(music_mp3, DATA_DIR)
 
-        # 3. Combine Bass + Other
-        update_status("combining", 65, "Synthesizing harmonic accompaniment (Bass + Other)...")
+        # 3. Combine Bass + Other & Full Instrumental
+        update_status("combining", 65, "Synthesizing harmonic accompaniment & instrumental backing tracks...")
+        drums_file = DATA_DIR / "drums.wav"
         bass_file = DATA_DIR / "bass.wav"
         other_file = DATA_DIR / "other.wav"
         accompaniment_file = DATA_DIR / "bass_other.wav"
+        instrumental_file = DATA_DIR / "instrumental.wav"
 
         if bass_file.exists() and other_file.exists():
             combine_bass_and_other(bass_file, other_file, accompaniment_file)
             chord_input_audio = accompaniment_file
         else:
             chord_input_audio = music_mp3
+
+        if drums_file.exists() and bass_file.exists() and other_file.exists():
+            combine_instrumental(drums_file, bass_file, other_file, instrumental_file)
 
         # 4. BTC Chord Recognition
         update_status("recognizing", 75, "Running Transformer AI chord recognition...")

@@ -2,9 +2,10 @@
 
 This repository contains a full pipeline and interactive web application for:
 1. **Audio Source Separation** using **Demucs** (`htdemucs`) to separate tracks into individual stems (**Vocals**, **Drums**, **Bass**, **Other**) directly into `data/`.
-2. **Musical Chord Recognition** using the **BTC (Bi-directional Transformer for Chord Recognition)** model (`puar-playground/btc-chord`) on combined harmonic accompaniment (**Bass + Other**).
-3. **Interactive FastAPI Web App** (`app.py`) for synchronized real-time chord visualization, interactive piano voicing, dynamic guitar chord fretboard diagrams, multi-stem audio switching, pitch transposition, and scrubbable timeline.
-4. **Notebook Server Control** (`server.ipynb`) to start, monitor, and stop the web server directly inside a Jupyter notebook.
+2. **Audio Stem Combination** (`combine.ipynb`) to merge isolated stems (**Bass + Other**) into harmonic accompaniment (`data/bass_other.wav`).
+3. **Musical Chord Recognition** using the **BTC (Bi-directional Transformer for Chord Recognition)** model (`puar-playground/btc-chord`) on harmonic accompaniment.
+4. **Interactive FastAPI Web App** (`app.py`) for synchronized real-time chord visualization, interactive piano voicing, dynamic guitar chord fretboard diagrams, multi-stem audio switching, pitch transposition, and scrubbable timeline.
+5. **Notebook Server Control** (`server.ipynb`) to start, monitor, and stop the web server directly inside a Jupyter notebook.
 
 ---
 
@@ -27,7 +28,7 @@ conda activate seperate
 
 ### Step 2: Install All Dependencies
 
-then install torch and torchaudio with your gpu cuda version
+Install PyTorch and TorchAudio for your CUDA version (e.g. CUDA 12.8 / 13.0):
 
 ```bash
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu130
@@ -37,13 +38,23 @@ pip install ipykernel numpy soundfile librosa transformers huggingface_hub scipy
 
 ---
 
+## 🚀 Step-by-Step Processing Pipeline (Notebooks)
+
+All notebooks import from [`pipeline.py`](./pipeline.py) for unified processing:
+
+1. **[`separate.ipynb`](./separate.ipynb)**: Runs Demucs source separation on `data/music.mp3` &rarr; outputs isolated stems (`vocals.wav`, `drums.wav`, `bass.wav`, `other.wav`).
+2. **[`combine.ipynb`](./combine.ipynb)**: Merges stems &rarr; generates `data/bass_other.wav` (harmonic accompaniment) and `data/instrumental.wav` (backing track).
+3. **[`chord_recognition.ipynb`](./chord_recognition.ipynb)**: Runs BTC Transformer on GPU &rarr; exports timeline to `data/chords.csv`.
+
+---
+
 ## 🌐 How to Run the Chord Web App
 
 ### Option A: Using the Notebook Controller (Recommended)
 Open [`server.ipynb`](./server.ipynb):
 - Run **Cell 2 (`start_server()`)** to launch the server asynchronously in the background.
 - Run **Cell 3 (`check_status()`)** to verify health and available stems.
-- Run **Cell 4 (`stop_server()`)** to cleanly stop the server and free port 8000.
+- Run **Cell 4 (`stop_server()`)** to cleanly stop the server and free port 8080.
 
 ---
 
@@ -51,9 +62,9 @@ Open [`server.ipynb`](./server.ipynb):
 ```bash
 python app.py
 ```
-*(Or `uvicorn app:app --host 127.0.0.1 --port 8000`)*
+*(Or `uvicorn app:app --host 0.0.0.0 --port 8080 --reload`)*
 
-Then open **[http://localhost:8000](http://localhost:8000)** in your browser.
+Then open **[http://localhost:8080](http://localhost:8080)** in your browser.
 
 ---
 
@@ -63,7 +74,7 @@ Then open **[http://localhost:8000](http://localhost:8000)** in your browser.
   - 🎸 **Guitar Mode**: Dynamic SVG Guitar Chord Boxes showing 6 strings, frets, finger positions, and barres.
   - 🎹 **Piano Mode**: Interactive 2-octave keyboard lighting up chord notes (root, 3rd, 5th, 7th).
   - 🎼 **Both Mode**: View both instruments simultaneously.
-- **Audio Stem Switcher**: Toggle between Full Mix (`music.mp3`), Accompaniment (`bass_other.wav`), Vocals, Drums, Bass, and Other.
+- **Audio Stem Switcher**: Toggle between Full Mix (`music.mp3`), Instrumental Backing Track (`instrumental.wav`), Accompaniment (`bass_other.wav`), Vocals, Drums, Bass, and Other.
 - **Live Transposition**: Transpose the whole song key up/down by semitones in real-time (`-` / `+` / `Reset`).
 - **Scrubbable Color Timeline**: Visual chord blocks positioned along the timeline; click anywhere to jump immediately to that point in the track.
 - **Auto-Scrolling Progression Sheet**: Grid of chord cards with search/filter capabilities.
@@ -80,7 +91,8 @@ seperate/
 │   ├── drums.wav                     # Isolated drums stem
 │   ├── bass.wav                      # Isolated bass line stem
 │   ├── other.wav                     # Remaining instruments stem
-│   ├── bass_other.wav                # Combined harmonic accompaniment
+│   ├── bass_other.wav                # Combined harmonic accompaniment (Bass + Other)
+│   ├── instrumental.wav              # Combined instrumental backing track (Drums + Bass + Other)
 │   └── chords.csv                    # Chord timeline (CSV format)
 ├── static/
 │   ├── index.html                    # Frontend user interface
@@ -93,10 +105,12 @@ seperate/
 │       ├── piano.js                  # Virtual Piano keyboard builder
 │       ├── timeline.js               # Timeline overview & progression sheet
 │       └── main.js                   # Application controller & state sync
+├── pipeline.py                       # Unified audio & chord AI processing engine
 ├── app.py                            # FastAPI backend server
 ├── server.ipynb                      # Server controller notebook (start / check / stop)
 ├── separate.ipynb                    # Step 1: Demucs source separation notebook
-├── chord_recognition.ipynb           # Step 2: BTC chord recognition notebook
+├── combine.ipynb                     # Step 2: Audio stem combination notebook
+├── chord_recognition.ipynb           # Step 3: BTC chord recognition notebook
 ├── README.md                         # Installation & usage documentation
 └── .gitignore                        # Ignores data audio while preserving data/ folder
 ```
