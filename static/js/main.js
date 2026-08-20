@@ -6,21 +6,25 @@ import {
   formatTime,
   formatTimePrecise,
   renderUnifiedTimeline,
+  renderRollingMeasureTape,
   renderUpcomingChords,
   generateMiniGuitarSvg
 } from './timeline.js';
 import { initUploadModal } from './upload.js';
 import { initChordLibrary, navigateToChordInLibrary } from './chord-library.js';
 import { getAudioContext, playMetronomeTick } from './audio-synth.js';
-import { initAlignmentView, updateAlignmentPlayhead, applyAlignmentTransposition, loadAlignedData } from './alignment.js';
 
 // --- STATE ---
 const state = {
-  currentView: 'visualizer', // 'visualizer' | 'alignment' | 'library'
+  currentView: 'visualizer', // 'visualizer' | 'library'
+  timelineView: 'stream',    // 'stream' | 'tape'
   audio: document.getElementById('audio-player'),
   rawChords: [],
   activeChords: [],
+  alignedMeasures: [],
   currentChordIndex: -1,
+  currentMeasureNum: -1,
+  currentBeatNum: -1,
   transposeSemitones: 0,
   playbackSpeed: 1.0,
   autoScroll: true,
@@ -28,7 +32,7 @@ const state = {
   stems: [],
   currentStemUrl: '',
   totalDuration: 0,
-  instrumentMode: 'both', // 'piano', 'guitar', 'both'
+  instrumentMode: 'guitar', // 'guitar', 'piano'
   capoFret: 0, // 0 to 7
 
   // Beat & Rhythm Tracking State
@@ -44,10 +48,8 @@ const state = {
 const el = {
   audio: document.getElementById('audio-player'),
   navTabVisualizer: document.getElementById('nav-tab-visualizer'),
-  navTabAlignment: document.getElementById('nav-tab-alignment'),
   navTabLibrary: document.getElementById('nav-tab-library'),
   viewVisualizer: document.getElementById('view-visualizer'),
-  viewAlignment: document.getElementById('view-alignment'),
   viewChordLibrary: document.getElementById('view-chord-library'),
   btnJumpLibrary: document.getElementById('btn-jump-library'),
   stemSelect: document.getElementById('stem-select'),
@@ -66,7 +68,22 @@ const el = {
   heroBeatBadge: document.getElementById('hero-beat-badge'),
   heroBeatText: document.getElementById('hero-beat-text'),
 
+  // Timeline View Switchers & Containers
+  btnTimelineStream: document.getElementById('btn-timeline-stream'),
+  btnTimelineTape: document.getElementById('btn-timeline-tape'),
+  unifiedTimelineWrapper: document.getElementById('unified-timeline-wrapper'),
+  unifiedTimelineContainer: document.getElementById('unified-timeline-container'),
+  slidingTapeViewport: document.getElementById('sliding-tape-viewport'),
+  slidingTapeTrack: document.getElementById('sliding-tape-track'),
+  timelineSearchInput: document.getElementById('timeline-search-input'),
+  tapeNavControls: document.getElementById('tape-nav-controls'),
+  tapeActiveBarBadge: document.getElementById('tape-active-bar-badge'),
+  btnTapePrevBar: document.getElementById('btn-tape-prev-bar'),
+  btnTapeNextBar: document.getElementById('btn-tape-next-bar'),
+  autoScrollToggle: document.getElementById('auto-scroll-toggle'),
   modeBtns: document.querySelectorAll('.mode-toggle-group .btn'),
+
+  // Instrument Cards
   pianoCard: document.getElementById('piano-card'),
   guitarCard: document.getElementById('guitar-card'),
   guitarChordSvg: document.getElementById('guitar-chord-svg'),
@@ -76,8 +93,6 @@ const el = {
   guitarFingeringLabel: document.getElementById('guitar-fingering-label'),
   capoSelect: document.getElementById('capo-select'),
   btnSmartCapo: document.getElementById('btn-smart-capo'),
-  alignCapoSelect: document.getElementById('align-capo-select'),
-  btnAlignSmartCapo: document.getElementById('btn-align-smart-capo'),
 
   heroChordName: document.getElementById('hero-chord-name'),
   heroChordDesc: document.getElementById('hero-chord-desc'),
@@ -90,9 +105,7 @@ const el = {
   notesLabel: document.getElementById('notes-label'),
   pianoKeyboard: document.getElementById('piano-keyboard'),
 
-  unifiedTimelineContainer: document.getElementById('unified-timeline-container'),
-  autoScrollToggle: document.getElementById('auto-scroll-toggle'),
-
+  // Player controls
   btnPlayPause: document.getElementById('btn-play-pause'),
   btnPrevChord: document.getElementById('btn-prev-chord'),
   btnNextChord: document.getElementById('btn-next-chord'),
@@ -100,15 +113,15 @@ const el = {
   scrubberFill: document.getElementById('scrubber-fill'),
   timeCurrent: document.getElementById('time-current'),
   timeTotal: document.getElementById('time-total'),
-  btnMute: document.getElementById('btn-mute'),
   volumeSlider: document.getElementById('volume-slider'),
+  btnMute: document.getElementById('btn-mute'),
 };
 
 // --- DATA FETCHING ---
 async function fetchStems() {
   try {
     const res = await fetch('/api/stems');
-    if (!res.ok) throw new Error('Failed to fetch stems');
+    if (!res.ok) throw new Error('Failed to load stems');
     const data = await res.json();
     state.stems = data.stems || [];
 
@@ -118,51 +131,79 @@ async function fetchStems() {
       return;
     }
 
+    // Default stem: Full Mix (music.mp3)
+    const defaultStem = state.stems.find(s =>
+      s.id === 'music' ||
+      s.filename === 'music.mp3' ||
+      (s.name && s.name.toLowerCase().includes('full mix')) ||
+      (s.display && s.display.toLowerCase().includes('full mix'))
+    ) || state.stems[0];
+
     state.stems.forEach(stem => {
       const opt = document.createElement('option');
-      opt.value = stem.url;
-      opt.textContent = `${stem.icon} ${stem.name} (${stem.size_mb} MB)`;
+      const stemId = stem.filename || stem.id || stem.name;
+      opt.value = stemId;
+      const displayName = stem.display || stem.name || stem.filename || 'Audio Track';
+      const icon = stem.icon || '🎵';
+      opt.textContent = `${icon} ${displayName}`;
+      if (defaultStem && (stem.filename === defaultStem.filename || stem.id === defaultStem.id || stem.name === defaultStem.name)) {
+        opt.selected = true;
+      }
       el.stemSelect.appendChild(opt);
     });
 
-    setAudioSource(state.stems[0].url);
+    if (defaultStem) {
+      setAudioSource(defaultStem.filename || defaultStem.id || defaultStem.name);
+    }
   } catch (err) {
     console.error('Error fetching stems:', err);
-    el.stemSelect.innerHTML = '<option value="/data/music.mp3">🎵 Full Mix (music.mp3)</option>';
-    setAudioSource('/data/music.mp3');
+    el.stemSelect.innerHTML = '<option value="">Error loading stems</option>';
   }
 }
 
-function setAudioSource(url) {
-  if (!url) return;
-  const wasPlaying = !el.audio.paused;
-  const currentTime = el.audio.currentTime || 0;
-  state.currentStemUrl = url;
-  el.audio.src = url;
+function setAudioSource(stemIdentifier) {
+  const stem = state.stems.find(s =>
+    s.filename === stemIdentifier ||
+    s.id === stemIdentifier ||
+    s.name === stemIdentifier ||
+    s.url === stemIdentifier
+  );
+  if (!stem) return;
+
+  const prevTime = el.audio.currentTime;
+  const isPlaying = !el.audio.paused;
+
+  state.currentStemUrl = stem.url;
+  el.audio.src = stem.url;
   el.audio.playbackRate = state.playbackSpeed;
-  el.audio.currentTime = currentTime;
-  if (wasPlaying) {
-    el.audio.play().catch(e => console.warn('Audio play prevented:', e));
-  }
+
+  el.audio.onloadedmetadata = () => {
+    el.audio.currentTime = prevTime;
+    state.totalDuration = el.audio.duration;
+    el.timeTotal.textContent = formatTime(el.audio.duration);
+    if (isPlaying) {
+      el.audio.play().catch(e => console.warn(e));
+    }
+  };
 }
 
 async function fetchChords() {
   try {
     const res = await fetch('/api/chords');
-    if (!res.ok) throw new Error('Failed to fetch chords');
+    if (!res.ok) throw new Error('Failed to load chords');
     const data = await res.json();
     state.rawChords = data.chords || [];
-    state.totalDuration = data.total_duration || 0;
-
     applyTransposition();
   } catch (err) {
     console.error('Error fetching chords:', err);
-    el.unifiedTimelineContainer.innerHTML = `
-      <div class="empty-state">
-        ⚠️ Could not load <code>data/chords.csv</code>.<br>
-        Please run <code>chord_recognition.ipynb</code> first to generate predictions!
-      </div>
-    `;
+    if (el.unifiedTimelineContainer) {
+      el.unifiedTimelineContainer.innerHTML = `
+        <div class="empty-state">
+          ⚠️ Could not load <code>data/chords.csv</code>.<br>
+          Please run <code>chord_recognition.ipynb</code> first to generate predictions!
+        </div>
+      `;
+    }
   }
 }
 
@@ -172,15 +213,73 @@ async function fetchBeats() {
     if (!res.ok) throw new Error('Failed to fetch beats');
     const data = await res.json();
     state.rawBeats = data.beats || [];
-    state.downbeats = data.downbeats || [];
     state.bpm = data.bpm || 0;
+    state.downbeats = (data.beats || []).filter(b => b.is_downbeat).map(b => b.time);
 
     if (el.bpmDisplay) {
       el.bpmDisplay.textContent = state.bpm ? `${state.bpm} BPM` : '-- BPM';
     }
   } catch (err) {
-    console.warn('No beats available or error fetching beats:', err);
+    console.warn('Error fetching beats:', err);
     if (el.bpmDisplay) el.bpmDisplay.textContent = '-- BPM';
+  }
+}
+
+async function fetchAlignedChords() {
+  try {
+    const res = await fetch('/api/aligned-chords');
+    if (!res.ok) throw new Error('Failed to fetch aligned chords');
+    const data = await res.json();
+    state.alignedMeasures = data.measures || [];
+    if (data.bpm && !state.bpm) {
+      state.bpm = data.bpm;
+      if (el.bpmDisplay) el.bpmDisplay.textContent = `${state.bpm} BPM`;
+    }
+
+    renderTape();
+  } catch (err) {
+    console.warn('Error fetching aligned chords:', err);
+    if (el.slidingTapeTrack) {
+      el.slidingTapeTrack.innerHTML = `
+        <div class="empty-state">
+          ⚠️ Please run <code>align.ipynb</code> or process a song to load beat-aligned measures!
+        </div>
+      `;
+    }
+  }
+}
+
+function renderTape() {
+  renderRollingMeasureTape(
+    el.slidingTapeTrack,
+    state.alignedMeasures,
+    (time) => {
+      el.audio.currentTime = time + 0.01;
+      if (el.audio.paused) el.audio.play().catch(e => console.warn(e));
+    },
+    state.transposeSemitones,
+    state.capoFret
+  );
+
+  filterTimeline();
+}
+
+function switchTimelineView(view) {
+  state.timelineView = view;
+  const isStream = view === 'stream';
+
+  if (el.btnTimelineStream) el.btnTimelineStream.classList.toggle('active', isStream);
+  if (el.btnTimelineTape) el.btnTimelineTape.classList.toggle('active', !isStream);
+
+  if (el.unifiedTimelineWrapper) el.unifiedTimelineWrapper.style.display = isStream ? 'block' : 'none';
+  if (el.slidingTapeViewport) el.slidingTapeViewport.style.display = isStream ? 'none' : 'block';
+  if (el.tapeNavControls) el.tapeNavControls.style.display = isStream ? 'none' : 'flex';
+
+  // Center active element on view change
+  if (isStream && state.currentChordIndex >= 0) {
+    centerActiveChordCard(state.currentChordIndex, 'auto');
+  } else if (!isStream && state.currentMeasureNum > 0) {
+    centerMeasureInSlidingTape(state.currentMeasureNum, 'auto');
   }
 }
 
@@ -193,50 +292,76 @@ function applyTransposition() {
     originalChord: item.chord
   }));
 
-  el.transposeVal.textContent = state.transposeSemitones > 0 ? `+${state.transposeSemitones}` : state.transposeSemitones;
+  if (el.transposeVal) {
+    el.transposeVal.textContent = state.transposeSemitones > 0 ? `+${state.transposeSemitones}` : state.transposeSemitones;
+  }
 
-  // Calculate and update Smart Capo recommendation across both views
-  const smart = findBestCapo(state.activeChords);
-  const capoButtons = [el.btnSmartCapo, el.btnAlignSmartCapo].filter(Boolean);
-  capoButtons.forEach(btn => {
+  // Calculate and update Smart Capo recommendation
+  if (el.btnSmartCapo) {
+    const smart = findBestCapo(state.activeChords);
     if (smart.bestCapo > 0) {
-      btn.textContent = `✨ Best: Capo ${smart.bestCapo}`;
-      btn.title = `Auto-apply optimal Capo ${smart.bestCapo} (${smart.openPercent}% open shapes)`;
-      btn.dataset.recommended = smart.bestCapo;
-      btn.classList.add('has-recommendation');
+      el.btnSmartCapo.textContent = `✨ Best: Capo ${smart.bestCapo}`;
+      el.btnSmartCapo.title = `Auto-apply optimal Capo ${smart.bestCapo} (${smart.openPercent}% open shapes)`;
+      el.btnSmartCapo.dataset.recommended = smart.bestCapo;
+      el.btnSmartCapo.classList.add('has-recommendation');
     } else {
-      btn.textContent = `✨ Best: No Capo`;
-      btn.title = `Optimal playability with No Capo (${smart.openPercent}% open shapes)`;
-      btn.dataset.recommended = 0;
-      btn.classList.remove('has-recommendation');
+      el.btnSmartCapo.textContent = `✨ Best: No Capo`;
+      el.btnSmartCapo.title = `Optimal playability with No Capo (${smart.openPercent}% open shapes)`;
+      el.btnSmartCapo.dataset.recommended = 0;
+      el.btnSmartCapo.classList.remove('has-recommendation');
     }
-  });
+  }
 
-  // Sync Capo dropdowns
+  // Sync Capo dropdown value
   if (el.capoSelect) el.capoSelect.value = state.capoFret.toString();
-  if (el.alignCapoSelect) el.alignCapoSelect.value = state.capoFret.toString();
 
-  // Update alignment view lead sheet transposition and capo
-  applyAlignmentTransposition(state.transposeSemitones, state.capoFret);
-
-  renderUnifiedTimeline(el.unifiedTimelineContainer, state.activeChords, (item) => {
+  // 1. Re-render Continuous Chord Stream
+  renderUnifiedTimeline(el.unifiedTimelineContainer, state.activeChords, (item, index) => {
     el.audio.currentTime = item.start + 0.01;
     if (el.audio.paused) el.audio.play().catch(e => console.warn(e));
   }, state.capoFret);
 
+  // 2. Re-render Beat-Aligned Rolling Measure Tape
+  renderTape();
+
   updateActiveChord(el.audio.currentTime);
 }
 
-function filterChordSheet(query) {
-  state.filterText = (query || '').toLowerCase().trim();
-  const cards = el.unifiedTimelineContainer.querySelectorAll('.timeline-chord-card');
-  cards.forEach(card => {
-    if (!state.filterText || card.dataset.chord.includes(state.filterText)) {
-      card.style.display = 'flex';
-    } else {
-      card.style.display = 'none';
-    }
-  });
+function filterTimeline() {
+  const q = (state.filterText || '').toLowerCase().trim();
+
+  // Filter Chord Stream
+  if (el.unifiedTimelineContainer) {
+    const cards = el.unifiedTimelineContainer.querySelectorAll('.timeline-chord-card');
+    cards.forEach(card => {
+      if (!q || card.dataset.chord.includes(q)) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  // Filter Rolling Measure Tape
+  if (el.slidingTapeTrack) {
+    const tapeCards = el.slidingTapeTrack.querySelectorAll('.tape-measure-card');
+    tapeCards.forEach(c => {
+      if (!q) {
+        c.style.opacity = '1';
+        c.style.filter = 'none';
+        return;
+      }
+      const mNum = c.dataset.measure;
+      const chords = c.dataset.chords || '';
+      if (mNum === q || chords.includes(q) || `bar ${mNum}`.includes(q)) {
+        c.style.opacity = '1';
+        c.style.filter = 'none';
+      } else {
+        c.style.opacity = '0.25';
+        c.style.filter = 'grayscale(0.8)';
+      }
+    });
+  }
 }
 
 function setInstrumentMode(mode) {
@@ -245,21 +370,16 @@ function setInstrumentMode(mode) {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   });
 
-  // Stage Grid always shows all detailed instruments (Hero Harmony + Guitar Chart + Piano Voicing)
-  if (el.pianoCard) el.pianoCard.style.display = 'flex';
-  if (el.guitarCard) el.guitarCard.style.display = 'flex';
-
-  // Timeline mode switcher controls which mini chord instruction is shown inside timeline-chord-card
   if (el.unifiedTimelineContainer) {
     el.unifiedTimelineContainer.dataset.timelineMode = mode;
   }
 }
 
-// --- SYNCHRONIZATION & PLAYHEAD ---
+// --- REAL-TIME PLAYBACK & SYNCHRONIZATION ---
 let playbackRafId = null;
 
 function startPlaybackLoop() {
-  stopPlaybackLoop();
+  if (playbackRafId) cancelAnimationFrame(playbackRafId);
   function loop() {
     if (!el.audio.paused) {
       updateActiveChord(el.audio.currentTime);
@@ -277,17 +397,19 @@ function stopPlaybackLoop() {
 }
 
 function updateActiveChord(currentTime) {
-  // Synchronize Beat Tracker
+  // 1. Synchronize Beat Tracker HUD
   updateActiveBeat(currentTime);
 
-  // Synchronize Beat-Chord Alignment Lead Sheet
-  updateAlignmentPlayhead(currentTime);
+  // 2. Synchronize Beat-Aligned Measure Tape
+  updateActiveMeasureStream(currentTime);
 
+  // 3. Synchronize Continuous Chord Progression Stream
   if (!state.activeChords.length) return;
 
   let newIndex = -1;
   for (let i = 0; i < state.activeChords.length; i++) {
-    if (currentTime >= state.activeChords[i].start && currentTime < state.activeChords[i].end) {
+    const item = state.activeChords[i];
+    if (currentTime >= item.start && currentTime < item.end) {
       newIndex = i;
       break;
     }
@@ -302,48 +424,139 @@ function updateActiveChord(currentTime) {
     onChordChanged(newIndex);
   }
 
+  // Update Scrubber Position
   const total = el.audio.duration || state.totalDuration || 1;
-  const progressPct = Math.min(100, Math.max(0, (currentTime / total) * 100));
+  const pct = Math.min(100, Math.max(0, (currentTime / total) * 100));
+  if (el.audioScrubber) el.audioScrubber.value = pct;
+  if (el.scrubberFill) el.scrubberFill.style.width = `${pct}%`;
+  if (el.timeCurrent) el.timeCurrent.textContent = formatTime(currentTime);
+  if (el.timeTotal && !isNaN(total)) el.timeTotal.textContent = formatTime(total);
+}
 
-  el.scrubberFill.style.width = `${progressPct}%`;
-  el.audioScrubber.value = progressPct;
+function updateActiveMeasureStream(currentTime) {
+  if (!state.alignedMeasures.length) return;
 
-  el.timeCurrent.textContent = formatTime(currentTime);
-  el.timeTotal.textContent = formatTime(total);
+  let activeMeasureObj = null;
+  for (let i = 0; i < state.alignedMeasures.length; i++) {
+    const m = state.alignedMeasures[i];
+    if (currentTime >= m.start && currentTime < m.end) {
+      activeMeasureObj = m;
+      break;
+    }
+  }
+
+  if (!activeMeasureObj && currentTime >= state.alignedMeasures[state.alignedMeasures.length - 1].end) {
+    activeMeasureObj = state.alignedMeasures[state.alignedMeasures.length - 1];
+  }
+
+  const activeMeasureNum = activeMeasureObj ? activeMeasureObj.measure : -1;
+
+  if (activeMeasureNum !== state.currentMeasureNum && activeMeasureObj) {
+    state.currentMeasureNum = activeMeasureNum;
+    onMeasureChanged(activeMeasureObj);
+  }
+
+  // Highlight specific beat cell within measure tape
+  if (activeMeasureObj) {
+    let activeBeatNum = 1;
+    for (let i = 0; i < (activeMeasureObj.beats || []).length; i++) {
+      const b = activeMeasureObj.beats[i];
+      if (currentTime >= b.time && (i === activeMeasureObj.beats.length - 1 || currentTime < activeMeasureObj.beats[i+1].time)) {
+        activeBeatNum = b.beat;
+        break;
+      }
+    }
+
+    if (activeBeatNum !== state.currentBeatNum) {
+      state.currentBeatNum = activeBeatNum;
+      highlightActiveBeatCell(activeMeasureNum, activeBeatNum);
+    }
+  }
+}
+
+function onMeasureChanged(m) {
+  if (!m) return;
+  const capoBadge = state.capoFret > 0 ? ` (Capo ${state.capoFret})` : '';
+  if (el.tapeActiveBarBadge) {
+    el.tapeActiveBarBadge.textContent = `BAR ${m.measure}${capoBadge}`;
+  }
+
+  if (el.slidingTapeTrack) {
+    const tapeCards = el.slidingTapeTrack.querySelectorAll('.tape-measure-card');
+    tapeCards.forEach(c => c.classList.remove('active'));
+
+    const activeTapeCard = document.getElementById(`tape-bar-${m.measure}`);
+    if (activeTapeCard) {
+      activeTapeCard.classList.add('active');
+    }
+
+    if (state.autoScroll) {
+      centerMeasureInSlidingTape(m.measure, 'smooth');
+    }
+  }
+}
+
+function centerMeasureInSlidingTape(measureNum, behavior = 'smooth') {
+  if (!el.slidingTapeViewport) return;
+  const activeTapeCard = document.getElementById(`tape-bar-${measureNum}`);
+  if (!activeTapeCard) return;
+
+  const viewportWidth = el.slidingTapeViewport.clientWidth;
+  const cardLeft = activeTapeCard.offsetLeft;
+  const cardWidth = activeTapeCard.offsetWidth;
+
+  const targetScrollLeft = cardLeft - (viewportWidth / 2) + (cardWidth / 2);
+
+  el.slidingTapeViewport.scrollTo({
+    left: Math.max(0, targetScrollLeft),
+    behavior: behavior
+  });
+}
+
+function highlightActiveBeatCell(measureNum, beatNum) {
+  if (!el.slidingTapeTrack) return;
+  const tapeCells = el.slidingTapeTrack.querySelectorAll('.tape-beat-cell');
+  tapeCells.forEach(cell => cell.classList.remove('active-beat'));
+
+  const activeTapeCell = document.getElementById(`tape-beat-${measureNum}-${beatNum}`);
+  if (activeTapeCell) {
+    activeTapeCell.classList.add('active-beat');
+  }
 }
 
 function updateActiveBeat(currentTime) {
   if (!state.rawBeats.length) return;
 
-  let low = 0;
-  let high = state.rawBeats.length - 1;
-  let newBeatIndex = -1;
-
-  while (low <= high) {
-    const mid = (low + high) >> 1;
-    const bTime = state.rawBeats[mid].time;
-    if (bTime <= currentTime + 0.05) {
-      newBeatIndex = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
+  let beatIdx = -1;
+  for (let i = 0; i < state.rawBeats.length; i++) {
+    const b = state.rawBeats[i];
+    const nextTime = i < state.rawBeats.length - 1 ? state.rawBeats[i+1].time : b.time + 0.6;
+    if (currentTime >= b.time && currentTime < nextTime) {
+      beatIdx = i;
+      break;
     }
   }
 
-  if (newBeatIndex !== state.currentBeatIndex) {
-    state.currentBeatIndex = newBeatIndex;
-    onBeatChanged(newBeatIndex);
+  if (beatIdx === -1) {
+    if (currentTime >= state.rawBeats[state.rawBeats.length - 1].time) {
+      beatIdx = state.rawBeats.length - 1;
+    } else {
+      beatIdx = 0;
+    }
   }
-}
 
-function onBeatChanged(beatIdx) {
-  const dots = el.beatDots && el.beatDots.length ? el.beatDots : document.querySelectorAll('.beat-dot');
+  const dots = el.beatDots || document.querySelectorAll('.beat-dot');
+
+  if (beatIdx === state.currentBeatIndex) {
+    return;
+  }
+
+  state.currentBeatIndex = beatIdx;
 
   if (beatIdx === -1 || !state.rawBeats[beatIdx]) {
-    dots.forEach(dot => dot.classList.remove('active', 'downbeat'));
+    dots.forEach(d => d.classList.remove('active', 'downbeat'));
     if (el.measureNum) el.measureNum.textContent = '--';
     if (el.heroBeatText) el.heroBeatText.textContent = 'Beat --';
-    if (el.heroBeatBadge) el.heroBeatBadge.classList.remove('pulse-beat', 'pulse-downbeat');
     return;
   }
 
@@ -351,14 +564,12 @@ function onBeatChanged(beatIdx) {
   const beatNum = parseInt(beatObj.beat) || 1;
   const isDownbeat = Boolean(beatObj.is_downbeat);
 
-  // Measure calculation: count how many downbeats up to this point
   let measure = 1;
   if (state.downbeats && state.downbeats.length > 0) {
     measure = state.downbeats.filter(t => t <= beatObj.time + 0.001).length || 1;
   }
   state.currentMeasure = measure;
 
-  // Update HUD Measure number
   if (el.measureNum) {
     el.measureNum.textContent = measure;
   }
@@ -370,62 +581,80 @@ function onBeatChanged(beatIdx) {
     if (dVal === dotIndex) {
       dot.classList.add('active');
       if (isDownbeat) dot.classList.add('downbeat');
-      else dot.classList.remove('downbeat');
     } else {
       dot.classList.remove('active', 'downbeat');
     }
   });
 
-  // Update Hero Card Beat Badge
   if (el.heroBeatText) {
-    el.heroBeatText.textContent = isDownbeat ? `Bar ${measure} • Beat ${beatNum} (Downbeat)` : `Bar ${measure} • Beat ${beatNum}`;
+    el.heroBeatText.textContent = isDownbeat ? `Beat ${beatNum} (Downbeat)` : `Beat ${beatNum}`;
   }
 
   if (el.heroBeatBadge) {
     el.heroBeatBadge.classList.remove('pulse-beat', 'pulse-downbeat');
-    void el.heroBeatBadge.offsetWidth; // trigger CSS reflow for animation restart
+    void el.heroBeatBadge.offsetWidth;
     el.heroBeatBadge.classList.add(isDownbeat ? 'pulse-downbeat' : 'pulse-beat');
   }
 
-  // Play crisp acoustic metronome click if enabled
   if (state.metronomeEnabled && !el.audio.paused) {
     playMetronomeTick(isDownbeat);
   }
 }
 
 function onChordChanged(index) {
-  const allCards = el.unifiedTimelineContainer.querySelectorAll('.timeline-chord-card');
-  allCards.forEach(c => c.classList.remove('active'));
+  if (el.unifiedTimelineContainer) {
+    const allCards = el.unifiedTimelineContainer.querySelectorAll('.timeline-chord-card');
+    allCards.forEach(c => c.classList.remove('active'));
+  }
 
   if (index === -1 || !state.activeChords[index]) {
-    el.heroChordName.textContent = '--';
+    if (el.heroChordName) el.heroChordName.textContent = '--';
     if (el.heroChordDesc) el.heroChordDesc.textContent = 'Audio Stopped / Paused';
-    if (el.chordTiming) el.chordTiming.textContent = '0:00.00 / 0:00.00';
-    highlightPianoNotes(el.pianoKeyboard, el.notesLabel, []);
+    if (el.chordTiming) el.chordTiming.textContent = '0.0s – 0.0s';
     renderGuitarChord(el.guitarChordSvg, el.guitarChordTitle, el.guitarStringNotes, el.guitarFingeringLabel, 'N', state.capoFret, el.guitarSoundingTitle);
-    if (el.upcomingChordsContainer) renderUpcomingChords(el.upcomingChordsContainer, []);
+    highlightPianoNotes(el.pianoKeyboard, el.notesLabel, []);
     renderChordAlternatives('N', state.capoFret);
     return;
   }
 
   const activeItem = state.activeChords[index];
-  el.heroChordName.textContent = formatChordName(activeItem.chord);
-  if (el.heroChordDesc) el.heroChordDesc.textContent = activeItem.chord === 'N' ? 'No Chord / Silence' : `Duration: ${activeItem.duration.toFixed(2)}s`;
-  if (el.chordTiming) el.chordTiming.textContent = `${formatTimePrecise(activeItem.start)} - ${formatTimePrecise(activeItem.end)}`;
+  const soundingChord = activeItem.chord;
+  const effectiveGuitarChord = state.capoFret > 0 && soundingChord !== 'N'
+    ? transposeChordName(soundingChord, -state.capoFret)
+    : soundingChord;
 
-  const root = activeItem.chord === 'N' ? 'N' : normalizeRoot(activeItem.chord.split(':')[0]);
-  el.heroChordName.style.color = ROOT_COLORS[root] || '#ffffff';
+  if (el.heroChordName) {
+    el.heroChordName.textContent = formatChordName(effectiveGuitarChord);
+  }
 
-  // Update Instruments
-  const chordNotes = getChordNotes(activeItem.chord);
+  if (el.heroChordDesc) {
+    if (state.capoFret > 0 && soundingChord !== 'N') {
+      el.heroChordDesc.textContent = `Capo ${state.capoFret} Shape (Sounding: ${formatChordName(soundingChord)})`;
+    } else {
+      el.heroChordDesc.textContent = `Active Sounding Harmony: ${formatChordName(soundingChord)}`;
+    }
+  }
+
+  if (el.chordTiming) {
+    el.chordTiming.textContent = `${activeItem.start.toFixed(1)}s – ${activeItem.end.toFixed(1)}s (${activeItem.duration.toFixed(1)}s)`;
+  }
+
+  const chordNotes = getChordNotes(soundingChord);
   highlightPianoNotes(el.pianoKeyboard, el.notesLabel, chordNotes);
   renderGuitarChord(el.guitarChordSvg, el.guitarChordTitle, el.guitarStringNotes, el.guitarFingeringLabel, activeItem.chord, state.capoFret, el.guitarSoundingTitle);
 
-  // Active Card & Auto-Shift in Single Row
+  // Active Card & Auto-Scroll in Chord Stream
+  centerActiveChordCard(index, 'smooth');
+
+  // Render Alternative Voicings
+  renderChordAlternatives(activeItem.chord, state.capoFret);
+}
+
+function centerActiveChordCard(index, behavior = 'smooth') {
   const activeCard = document.getElementById(`chord-card-${index}`);
   if (activeCard) {
     activeCard.classList.add('active');
-    if (state.autoScroll && el.unifiedTimelineContainer) {
+    if (state.autoScroll && state.timelineView === 'stream' && el.unifiedTimelineContainer) {
       const container = el.unifiedTimelineContainer;
       const containerWidth = container.clientWidth;
       const cardLeft = activeCard.offsetLeft;
@@ -434,22 +663,12 @@ function onChordChanged(index) {
 
       container.scrollTo({
         left: Math.max(0, targetScrollLeft),
-        behavior: 'smooth'
+        behavior: behavior
       });
     }
   }
-
-  // Upcoming Chords (if container present)
-  if (el.upcomingChordsContainer) {
-    const upcoming = state.activeChords.slice(index + 1, index + 5);
-    renderUpcomingChords(el.upcomingChordsContainer, upcoming, state.capoFret);
-  }
-
-  // Update Alternative & Easier Chord Voicings
-  renderChordAlternatives(activeItem.chord, state.capoFret);
 }
 
-// --- ALTERNATIVE & EASIER VOICINGS RENDERER ---
 function renderChordAlternatives(chordStr, capoFret = 0) {
   if (!el.alternativesGrid) return;
 
@@ -461,6 +680,7 @@ function renderChordAlternatives(chordStr, capoFret = 0) {
 
   const effectiveChord = capoFret > 0 ? transposeChordName(chordStr, -capoFret) : chordStr;
   const formattedName = formatChordName(effectiveChord);
+
   if (el.altTargetChord) {
     el.altTargetChord.textContent = formattedName + (capoFret > 0 ? ` (Capo ${capoFret})` : '');
   }
@@ -507,11 +727,9 @@ function renderChordAlternatives(chordStr, capoFret = 0) {
     `;
 
     card.addEventListener('click', () => {
-      // Highlight active selection
       el.alternativesGrid.querySelectorAll('.alt-chord-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
 
-      // Preview on main chart
       renderGuitarChord(
         el.guitarChordSvg,
         el.guitarChordTitle,
@@ -529,118 +747,162 @@ function renderChordAlternatives(chordStr, capoFret = 0) {
   el.alternativesGrid.appendChild(frag);
 }
 
+function jumpToAdjacentMeasure(delta) {
+  if (!state.alignedMeasures.length) return;
+  const curIdx = state.alignedMeasures.findIndex(m => m.measure === state.currentMeasureNum);
+  const nextIdx = Math.max(0, Math.min(state.alignedMeasures.length - 1, (curIdx >= 0 ? curIdx : 0) + delta));
+  const targetBar = state.alignedMeasures[nextIdx];
+  if (targetBar) {
+    el.audio.currentTime = targetBar.start + 0.01;
+    if (el.audio.paused) el.audio.play().catch(() => {});
+  }
+}
+
 // --- EVENT LISTENERS ---
 function setupEventListeners() {
+  if (el.btnTimelineStream) {
+    el.btnTimelineStream.addEventListener('click', () => switchTimelineView('stream'));
+  }
+  if (el.btnTimelineTape) {
+    el.btnTimelineTape.addEventListener('click', () => switchTimelineView('tape'));
+  }
+
+  if (el.timelineSearchInput) {
+    el.timelineSearchInput.addEventListener('input', (e) => {
+      state.filterText = e.target.value;
+      filterTimeline();
+    });
+  }
+
+  if (el.btnTapePrevBar) {
+    el.btnTapePrevBar.addEventListener('click', () => jumpToAdjacentMeasure(-1));
+  }
+  if (el.btnTapeNextBar) {
+    el.btnTapeNextBar.addEventListener('click', () => jumpToAdjacentMeasure(1));
+  }
+
   el.modeBtns.forEach(btn => {
     btn.addEventListener('click', () => setInstrumentMode(btn.dataset.mode));
   });
 
   el.audio.addEventListener('timeupdate', () => updateActiveChord(el.audio.currentTime));
   el.audio.addEventListener('play', () => {
-    el.btnPlayPause.textContent = '⏸';
+    if (el.btnPlayPause) el.btnPlayPause.textContent = '⏸';
     startPlaybackLoop();
   });
   el.audio.addEventListener('pause', () => {
-    el.btnPlayPause.textContent = '▶';
+    if (el.btnPlayPause) el.btnPlayPause.textContent = '▶';
     stopPlaybackLoop();
   });
   el.audio.addEventListener('ended', () => {
-    el.btnPlayPause.textContent = '▶';
+    if (el.btnPlayPause) el.btnPlayPause.textContent = '▶';
     stopPlaybackLoop();
   });
   el.audio.addEventListener('loadedmetadata', () => {
-    el.timeTotal.textContent = formatTime(el.audio.duration);
+    if (el.timeTotal) el.timeTotal.textContent = formatTime(el.audio.duration);
   });
 
-  el.btnPlayPause.addEventListener('click', () => {
-    if (el.audio.paused) el.audio.play().catch(e => console.warn(e));
-    else el.audio.pause();
-  });
-
-  el.btnPrevChord.addEventListener('click', () => {
-    if (state.currentChordIndex > 0) {
-      el.audio.currentTime = state.activeChords[state.currentChordIndex - 1].start + 0.01;
-    }
-  });
-
-  el.btnNextChord.addEventListener('click', () => {
-    if (state.currentChordIndex < state.activeChords.length - 1) {
-      el.audio.currentTime = state.activeChords[state.currentChordIndex + 1].start + 0.01;
-    }
-  });
-
-  el.audioScrubber.addEventListener('input', (e) => {
-    const total = el.audio.duration || state.totalDuration || 1;
-    el.audio.currentTime = (parseFloat(e.target.value) / 100) * total;
-  });
-
-  el.volumeSlider.addEventListener('input', (e) => {
-    el.audio.volume = parseFloat(e.target.value);
-    el.btnMute.textContent = el.audio.volume === 0 ? '🔇' : '🔊';
-  });
-
-  el.btnMute.addEventListener('click', () => {
-    if (el.audio.volume > 0) {
-      el.audio.volume = 0;
-      el.volumeSlider.value = 0;
-      el.btnMute.textContent = '🔇';
-    } else {
-      el.audio.volume = 0.9;
-      el.volumeSlider.value = 0.9;
-      el.btnMute.textContent = '🔊';
-    }
-  });
-
-  el.stemSelect.addEventListener('change', (e) => setAudioSource(e.target.value));
-
-  el.btnTransposeUp.addEventListener('click', () => {
-    if (state.transposeSemitones < 11) {
-      state.transposeSemitones += 1;
-      applyTransposition();
-    }
-  });
-
-  el.btnTransposeDown.addEventListener('click', () => {
-    if (state.transposeSemitones > -11) {
-      state.transposeSemitones -= 1;
-      applyTransposition();
-    }
-  });
-
-  el.btnTransposeReset.addEventListener('click', () => {
-    state.transposeSemitones = 0;
-    applyTransposition();
-  });
-
-  if (el.btnMetronome) {
-    el.btnMetronome.addEventListener('click', () => {
-      // Ensure Web Audio Context is active on user gesture
+  if (el.btnPlayPause) {
+    el.btnPlayPause.addEventListener('click', () => {
       getAudioContext();
+      if (el.audio.paused) el.audio.play().catch(e => console.warn(e));
+      else el.audio.pause();
+    });
+  }
 
-      state.metronomeEnabled = !state.metronomeEnabled;
-      el.btnMetronome.classList.toggle('active', state.metronomeEnabled);
-      el.btnMetronome.title = state.metronomeEnabled ? 'Metronome Audio Click: ON' : 'Metronome Audio Click: OFF';
-
-      // Play immediate audible preview click when turned ON
-      if (state.metronomeEnabled) {
-        playMetronomeTick(true);
+  if (el.btnPrevChord) {
+    el.btnPrevChord.addEventListener('click', () => {
+      if (state.timelineView === 'tape') {
+        jumpToAdjacentMeasure(-1);
+      } else if (state.currentChordIndex > 0) {
+        el.audio.currentTime = state.activeChords[state.currentChordIndex - 1].start + 0.01;
       }
     });
   }
 
-  el.speedSelect.addEventListener('change', (e) => {
-    state.playbackSpeed = parseFloat(e.target.value);
-    el.audio.playbackRate = state.playbackSpeed;
-  });
+  if (el.btnNextChord) {
+    el.btnNextChord.addEventListener('click', () => {
+      if (state.timelineView === 'tape') {
+        jumpToAdjacentMeasure(1);
+      } else if (state.currentChordIndex < state.activeChords.length - 1) {
+        el.audio.currentTime = state.activeChords[state.currentChordIndex + 1].start + 0.01;
+      }
+    });
+  }
 
-  el.autoScrollToggle.addEventListener('change', (e) => {
-    state.autoScroll = e.target.checked;
-  });
+  if (el.audioScrubber) {
+    el.audioScrubber.addEventListener('input', (e) => {
+      const total = el.audio.duration || state.totalDuration || 1;
+      el.audio.currentTime = (parseFloat(e.target.value) / 100) * total;
+    });
+  }
+
+  if (el.volumeSlider) {
+    el.volumeSlider.addEventListener('input', (e) => {
+      el.audio.volume = parseFloat(e.target.value);
+      if (el.btnMute) el.btnMute.textContent = el.audio.volume === 0 ? '🔇' : '🔊';
+    });
+  }
+
+  if (el.btnMute) {
+    el.btnMute.addEventListener('click', () => {
+      if (el.audio.volume > 0) {
+        el.audio.volume = 0;
+        if (el.volumeSlider) el.volumeSlider.value = 0;
+        el.btnMute.textContent = '🔇';
+      } else {
+        el.audio.volume = 0.9;
+        if (el.volumeSlider) el.volumeSlider.value = 0.9;
+        el.btnMute.textContent = '🔊';
+      }
+    });
+  }
+
+  if (el.stemSelect) {
+    el.stemSelect.addEventListener('change', (e) => setAudioSource(e.target.value));
+  }
+
+  if (el.btnTransposeUp) {
+    el.btnTransposeUp.addEventListener('click', () => {
+      if (state.transposeSemitones < 11) {
+        state.transposeSemitones += 1;
+        applyTransposition();
+      }
+    });
+  }
+
+  if (el.btnTransposeDown) {
+    el.btnTransposeDown.addEventListener('click', () => {
+      if (state.transposeSemitones > -11) {
+        state.transposeSemitones -= 1;
+        applyTransposition();
+      }
+    });
+  }
+
+  if (el.btnTransposeReset) {
+    el.btnTransposeReset.addEventListener('click', () => {
+      state.transposeSemitones = 0;
+      applyTransposition();
+    });
+  }
+
+  if (el.speedSelect) {
+    el.speedSelect.addEventListener('change', (e) => {
+      state.playbackSpeed = parseFloat(e.target.value) || 1.0;
+      el.audio.playbackRate = state.playbackSpeed;
+    });
+  }
+
+  if (el.autoScrollToggle) {
+    el.autoScrollToggle.addEventListener('change', (e) => {
+      state.autoScroll = e.target.checked;
+    });
+  }
 
   function setCapo(fret) {
     state.capoFret = fret;
     if (el.capoSelect) el.capoSelect.value = fret.toString();
-    if (el.alignCapoSelect) el.alignCapoSelect.value = fret.toString();
     applyTransposition();
     onChordChanged(state.currentChordIndex);
   }
@@ -651,31 +913,28 @@ function setupEventListeners() {
     });
   }
 
-  if (el.alignCapoSelect) {
-    el.alignCapoSelect.addEventListener('change', (e) => {
-      setCapo(parseInt(e.target.value, 10) || 0);
+  if (el.btnSmartCapo) {
+    el.btnSmartCapo.addEventListener('click', () => {
+      const smart = findBestCapo(state.activeChords);
+      setCapo(smart.bestCapo);
     });
   }
 
-  function applySmartCapo() {
-    const smart = findBestCapo(state.activeChords);
-    setCapo(smart.bestCapo);
+  if (el.btnMetronome) {
+    el.btnMetronome.addEventListener('click', () => {
+      getAudioContext();
+      state.metronomeEnabled = !state.metronomeEnabled;
+      el.btnMetronome.classList.toggle('active', state.metronomeEnabled);
+      el.btnMetronome.title = state.metronomeEnabled ? 'Metronome Audio Click: ON' : 'Metronome Audio Click: OFF';
+      if (state.metronomeEnabled) {
+        playMetronomeTick(true);
+      }
+    });
   }
 
-  if (el.btnSmartCapo) {
-    el.btnSmartCapo.addEventListener('click', applySmartCapo);
-  }
-  if (el.btnAlignSmartCapo) {
-    el.btnAlignSmartCapo.addEventListener('click', applySmartCapo);
-  }
-
-  // Smooth horizontal scroll with mouse wheel
-  // Navigation View Tabs (Visualizer vs Beat-Chord Alignment vs Guitar Chord Library)
+  // Navigation View Tabs
   if (el.navTabVisualizer) {
     el.navTabVisualizer.addEventListener('click', () => switchView('visualizer'));
-  }
-  if (el.navTabAlignment) {
-    el.navTabAlignment.addEventListener('click', () => switchView('alignment'));
   }
   if (el.navTabLibrary) {
     el.navTabLibrary.addEventListener('click', () => switchView('library'));
@@ -691,6 +950,7 @@ function setupEventListeners() {
     });
   }
 
+  // Smooth horizontal scroll with mouse wheel on both timeline containers
   if (el.unifiedTimelineContainer) {
     el.unifiedTimelineContainer.addEventListener('wheel', (e) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -700,17 +960,29 @@ function setupEventListeners() {
     }, { passive: false });
   }
 
+  if (el.slidingTapeViewport) {
+    el.slidingTapeViewport.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.slidingTapeViewport.scrollLeft += e.deltaY;
+      }
+    }, { passive: false });
+  }
+
+  // Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     if (e.code === 'Space') {
       e.preventDefault();
-      el.btnPlayPause.click();
+      if (el.btnPlayPause) el.btnPlayPause.click();
     } else if (e.code === 'ArrowLeft' || e.key === 'j') {
-      el.audio.currentTime = Math.max(0, el.audio.currentTime - 5);
+      if (state.timelineView === 'tape') jumpToAdjacentMeasure(-1);
+      else el.audio.currentTime = Math.max(0, el.audio.currentTime - 5);
     } else if (e.code === 'ArrowRight' || e.key === 'l') {
-      el.audio.currentTime = Math.min(el.audio.duration || 9999, el.audio.currentTime + 5);
+      if (state.timelineView === 'tape') jumpToAdjacentMeasure(1);
+      else el.audio.currentTime = Math.min(el.audio.duration || 9999, el.audio.currentTime + 5);
     } else if (e.key === 'm') {
-      el.btnMute.click();
+      if (el.btnMute) el.btnMute.click();
     }
   });
 }
@@ -718,15 +990,12 @@ function setupEventListeners() {
 function switchView(viewName) {
   state.currentView = viewName;
   const isVis = viewName === 'visualizer';
-  const isAlign = viewName === 'alignment';
   const isLib = viewName === 'library';
 
   if (el.navTabVisualizer) el.navTabVisualizer.classList.toggle('active', isVis);
-  if (el.navTabAlignment) el.navTabAlignment.classList.toggle('active', isAlign);
   if (el.navTabLibrary) el.navTabLibrary.classList.toggle('active', isLib);
 
   if (el.viewVisualizer) el.viewVisualizer.style.display = isVis ? 'flex' : 'none';
-  if (el.viewAlignment) el.viewAlignment.style.display = isAlign ? 'flex' : 'none';
   if (el.viewChordLibrary) el.viewChordLibrary.style.display = isLib ? 'block' : 'none';
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -738,29 +1007,26 @@ function init() {
   setInstrumentMode('guitar');
   setupEventListeners();
   initChordLibrary('chord-library-content');
-  initAlignmentView(el.audio);
   initUploadModal({
     onProcessingComplete: async () => {
       try {
-        if (el.audio) {
-          el.audio.pause();
-          el.audio.currentTime = 0;
-        }
         await fetchStems();
         await fetchChords();
         await fetchBeats();
-        await loadAlignedData();
+        await fetchAlignedChords();
         if (el.audio) {
           el.audio.play().catch(e => console.warn(e));
         }
       } catch (err) {
-        console.error('Error reloading after AI processing:', err);
+        console.error('Error refreshing post upload:', err);
       }
     }
   });
+
   fetchStems();
   fetchChords();
   fetchBeats();
+  fetchAlignedChords();
 }
 
 document.addEventListener('DOMContentLoaded', init);

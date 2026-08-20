@@ -6,7 +6,21 @@ const OPEN_STRING_INDICES = [4, 9, 2, 7, 11, 4]; // E2, A2, D3, G3, B3, E4
 
 export function renderGuitarChord(svgElement, titleElement, stringNotesElement, labelElement, chordInput, capoFret = 0, soundingElement = null) {
   if (!svgElement) return;
-  svgElement.innerHTML = '';
+
+  let svg = svgElement.tagName && svgElement.tagName.toLowerCase() === 'svg'
+    ? svgElement
+    : (svgElement.querySelector('svg') || svgElement);
+
+  if (svg.tagName && svg.tagName.toLowerCase() !== 'svg') {
+    const newSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    newSvg.setAttribute('viewBox', '0 0 240 280');
+    newSvg.setAttribute('class', 'fretboard-svg');
+    svg.innerHTML = '';
+    svg.appendChild(newSvg);
+    svg = newSvg;
+  } else {
+    svg.innerHTML = '';
+  }
 
   if (!chordInput || chordInput === 'N') {
     if (titleElement) titleElement.textContent = 'No Chord (Silence)';
@@ -24,7 +38,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
     text.setAttribute('font-size', '16');
     text.setAttribute('font-family', "'Outfit', sans-serif");
     text.textContent = 'No Chord';
-    svgElement.appendChild(text);
+    svg.appendChild(text);
     return;
   }
 
@@ -106,7 +120,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
     capoHeader.setAttribute('letter-spacing', '0.8');
     capoHeader.setAttribute('font-family', "'Outfit', sans-serif");
     capoHeader.textContent = `⚡ CAPO FRET ${capoFret} (Play ${formatChordName(effectiveChord)})`;
-    svgElement.appendChild(capoHeader);
+    svg.appendChild(capoHeader);
   }
 
   // Fretboard Grid Background
@@ -119,7 +133,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
   rect.setAttribute('stroke', '#334155');
   rect.setAttribute('stroke-width', '1.5');
   rect.setAttribute('rx', '2');
-  svgElement.appendChild(rect);
+  svg.appendChild(rect);
 
   // Nut (thick top line for open 1st fret) OR Base Fret Pill Badge on Left (for fret > 1)
   if (baseFret === 1) {
@@ -131,7 +145,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
     nut.setAttribute('stroke', capoFret > 0 ? '#f59e0b' : '#f8fafc');
     nut.setAttribute('stroke-width', capoFret > 0 ? '6' : '5');
     nut.setAttribute('stroke-linecap', 'round');
-    svgElement.appendChild(nut);
+    svg.appendChild(nut);
   } else {
     // Higher position: Base Fret Pill Badge shifted far left to avoid any dot overlap
     const badgeBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -143,7 +157,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
     badgeBg.setAttribute('fill', 'rgba(6, 182, 212, 0.18)');
     badgeBg.setAttribute('stroke', '#38bdf8');
     badgeBg.setAttribute('stroke-width', '1.2');
-    svgElement.appendChild(badgeBg);
+    svg.appendChild(badgeBg);
 
     const fretText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     fretText.setAttribute('x', '25');
@@ -154,7 +168,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
     fretText.setAttribute('font-family', "'JetBrains Mono', monospace");
     fretText.setAttribute('text-anchor', 'middle');
     fretText.textContent = `${baseFret}fr`;
-    svgElement.appendChild(fretText);
+    svg.appendChild(fretText);
   }
 
   // Horizontal Frets
@@ -166,7 +180,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
     line.setAttribute('y2', yOffset + f * fretGap);
     line.setAttribute('stroke', '#334155');
     line.setAttribute('stroke-width', '1.5');
-    svgElement.appendChild(line);
+    svg.appendChild(line);
   }
 
   // Vertical Strings (No bottom letters)
@@ -179,7 +193,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
     line.setAttribute('y2', yOffset + height);
     line.setAttribute('stroke', '#64748b');
     line.setAttribute('stroke-width', s < 3 ? '2.5' : '1.5');
-    svgElement.appendChild(line);
+    svg.appendChild(line);
   }
 
   // Barre Indicator
@@ -211,7 +225,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
           barre.setAttribute('rx', '9');
           barre.setAttribute('fill', dotColor);
           barre.setAttribute('opacity', '0.85');
-          svgElement.appendChild(barre);
+          svg.appendChild(barre);
         }
       }
     });
@@ -232,7 +246,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
       xText.setAttribute('font-weight', 'bold');
       xText.setAttribute('font-family', "'JetBrains Mono', monospace");
       xText.textContent = '✕';
-      svgElement.appendChild(xText);
+      svg.appendChild(xText);
     } else if (fret === 0) {
       // Open (O)
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -242,7 +256,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
       circle.setAttribute('fill', 'none');
       circle.setAttribute('stroke', '#10b981');
       circle.setAttribute('stroke-width', '2');
-      svgElement.appendChild(circle);
+      svg.appendChild(circle);
     } else {
       // Finger Dot
       const relativeFret = fret - baseFret + 1;
@@ -255,7 +269,7 @@ export function renderGuitarChord(svgElement, titleElement, stringNotesElement, 
         dot.setAttribute('fill', dotColor);
         dot.setAttribute('stroke', '#ffffff');
         dot.setAttribute('stroke-width', '1.5');
-        svgElement.appendChild(dot);
+        svg.appendChild(dot);
       }
     }
   });

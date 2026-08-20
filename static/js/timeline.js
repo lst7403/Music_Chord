@@ -233,3 +233,126 @@ export function renderUpcomingChords(container, upcomingList, capoFret = 0) {
   });
   container.appendChild(frag);
 }
+
+export function renderRollingMeasureTape(container, measures, onSeek, transposeSemitones = 0, capoFret = 0) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!measures || !measures.length) {
+    container.innerHTML = '<div class="empty-state">No beat-aligned measures available.</div>';
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+
+  measures.forEach(m => {
+    const tapeCard = document.createElement('div');
+    tapeCard.className = 'tape-measure-card';
+    tapeCard.id = `tape-bar-${m.measure}`;
+    tapeCard.dataset.measure = m.measure;
+    tapeCard.dataset.start = m.start;
+    tapeCard.dataset.end = m.end;
+
+    const beatCount = (m.beats && m.beats.length) ? m.beats.length : 4;
+    const dur = (m.end - m.start).toFixed(2);
+    tapeCard.style.minWidth = `${Math.max(160, beatCount * 72 + 24)}px`;
+
+    // Transpose chords in beats with Key and Capo
+    const transposedBeats = (m.beats || []).map(b => {
+      const soundingChord = transposeChordName(b.chord, transposeSemitones);
+      const effectiveGuitarChord = (capoFret > 0 && soundingChord !== 'N')
+        ? transposeChordName(soundingChord, -capoFret)
+        : soundingChord;
+
+      const isRest = effectiveGuitarChord === 'N';
+      const root = isRest ? 'N' : normalizeRoot(effectiveGuitarChord.split(':')[0]);
+      const rootColor = ROOT_COLORS[root] || '#6366f1';
+      return {
+        ...b,
+        transChord: effectiveGuitarChord,
+        soundingChord,
+        isRest,
+        rootColor
+      };
+    });
+
+    const uniqueChords = [...new Set(transposedBeats.map(b => b.transChord))];
+    tapeCard.dataset.chords = uniqueChords.join(' ').toLowerCase();
+
+    let beatsHtml = '';
+    let lastChord = null;
+
+    transposedBeats.forEach(b => {
+      const isRepeated = (lastChord !== null && b.transChord === lastChord);
+      lastChord = b.transChord;
+
+      const displayName = b.isRest ? '—' : formatChordName(b.transChord);
+
+      let chordContentHtml = '';
+      if (isRepeated) {
+        // Sustained/repeated chord: omit repeated name and chart, keep clean beat counting cell
+        chordContentHtml = `
+          <div class="tape-beat-chord tape-chord-held" style="color: #64748b; font-weight: 500;">—</div>
+          <div class="tape-mini-chart tape-chart-held"><div class="tape-hold-dash"></div></div>
+        `;
+      } else {
+        const miniGuitar = b.isRest ? '' : generateMiniGuitarSvg(b.transChord, b.rootColor);
+        const soundingSub = (capoFret > 0 && !b.isRest)
+          ? `<div class="tape-beat-sounding">Pitch: <strong>${formatChordName(b.soundingChord)}</strong></div>`
+          : '';
+
+        chordContentHtml = `
+          <div class="tape-beat-chord" style="color: ${b.isRest ? '#94a3b8' : '#ffffff'}">${displayName}</div>
+          ${soundingSub}
+          <div class="tape-mini-chart">${miniGuitar}</div>
+        `;
+      }
+
+      beatsHtml += `
+        <div class="tape-beat-cell ${b.is_downbeat ? 'downbeat-cell' : ''}" 
+             id="tape-beat-${m.measure}-${b.beat}"
+             data-time="${b.time}"
+             title="Bar ${m.measure} Beat ${b.beat} (${b.time.toFixed(2)}s): ${displayName}${isRepeated ? ' (Sustained)' : ''}">
+          <div class="tape-beat-top" style="background: ${b.isRest ? 'rgba(255,255,255,0.06)' : b.rootColor}">
+            <span class="tape-beat-tag">B${b.beat} ${b.is_downbeat ? '★' : ''}</span>
+            <span class="tape-beat-time">${b.time.toFixed(1)}s</span>
+          </div>
+          ${chordContentHtml}
+        </div>
+      `;
+    });
+
+    const capoTag = capoFret > 0 ? `<span class="tape-capo-pill">Capo ${capoFret}</span>` : '';
+
+    tapeCard.innerHTML = `
+      <div class="tape-card-header">
+        <div class="tape-bar-num-wrap">
+          <span class="tape-bar-num">BAR ${m.measure}</span>
+          ${capoTag}
+        </div>
+        <span class="tape-bar-time">${m.start.toFixed(1)}s – ${m.end.toFixed(1)}s (${dur}s)</span>
+      </div>
+      <div class="tape-beats-row" style="grid-template-columns: repeat(${beatCount}, minmax(64px, 1fr));">
+        ${beatsHtml}
+      </div>
+    `;
+
+    // Click handler for individual beat seeking
+    tapeCard.querySelectorAll('.tape-beat-cell').forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const seekTime = parseFloat(cell.dataset.time);
+        if (onSeek && !isNaN(seekTime)) onSeek(seekTime);
+      });
+    });
+
+    tapeCard.addEventListener('click', () => {
+      if (onSeek) onSeek(m.start);
+    });
+
+    frag.appendChild(tapeCard);
+  });
+
+  container.appendChild(frag);
+}
+

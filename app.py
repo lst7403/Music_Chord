@@ -261,6 +261,7 @@ def get_stems():
             available.append({
                 "id": stem["id"],
                 "name": stem["name"],
+                "display": stem["name"],
                 "filename": target_file.name,
                 "url": f"/data/{target_file.name}?t={int(target_file.stat().st_mtime)}",
                 "size_mb": size_mb,
@@ -279,6 +280,7 @@ def get_stems():
             available.append({
                 "id": f.stem.lower(),
                 "name": clean_name,
+                "display": clean_name,
                 "filename": f.name,
                 "url": f"/data/{f.name}?t={int(f.stat().st_mtime)}",
                 "size_mb": size_mb,

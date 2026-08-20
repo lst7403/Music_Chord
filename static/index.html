@@ -27,11 +27,6 @@
           <span class="tab-icon">🎼</span>
           <span>Song Visualizer</span>
         </button>
-        <button id="nav-tab-alignment" class="nav-tab-btn" title="Beat-Synchronous Lead Sheet & Measure Grid">
-          <span class="tab-icon">📐</span>
-          <span>Beat & Chord Alignment</span>
-          <span class="tab-badge" id="tab-badge-bars">Lead Sheet</span>
-        </button>
         <button id="nav-tab-library" class="nav-tab-btn" title="Complete Guitar Chord & Voicings Encyclopedia (CHORD_ALTERNATIVES_DB)">
           <span class="tab-icon">🎸</span>
           <span>Guitar Chord Library</span>
@@ -133,28 +128,41 @@
 
     <!-- 1. SONG VISUALIZER MAIN CONTENT VIEW -->
     <main class="main-layout" id="view-visualizer">
-      <!-- 2. FULL-WIDTH HORIZONTAL CHORD PROGRESSION TICKER -->
+      <!-- 2. DUAL-ROW TIMELINE: CONTINUOUS CHORD STREAM (ROW 1) + BEAT & MEASURE TAPE (ROW 2) -->
       <section class="card chord-timeline-section">
         <div class="sheet-header">
           <div class="sheet-title-area">
             <div class="section-title-tag">
               <span class="icon">🎼</span>
-              <h2>Chord Progression Stream</h2>
+              <h2>Chord Progression & Beat Timeline</h2>
             </div>
-            
+
             <div class="sheet-toggles">
               <label class="toggle-label">
                 <input type="checkbox" id="auto-scroll-toggle" checked>
                 <span class="toggle-custom"></span>
-                Auto-Shift
+                Auto-Shift Both Rows
               </label>
             </div>
           </div>
 
-          <!-- Mode Switcher in timeline section (Piano / Guitar) -->
+          <!-- Controls in timeline section (Search, Quick Bar Nav, Piano/Guitar Mode) -->
           <div class="sheet-controls-area">
+            <div class="align-search-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="timeline-search-input" placeholder="Search chord (e.g. G#)..." class="search-input">
+            </div>
+
+            <!-- Tape Navigation & Active Bar Badge -->
+            <div class="tape-nav-controls" id="tape-nav-controls">
+              <button id="btn-tape-prev-bar" class="btn btn-sm btn-ghost" title="Previous Bar (J)">⏮</button>
+              <span class="active-bar-badge" id="tape-active-bar-badge">BAR 1</span>
+              <button id="btn-tape-next-bar" class="btn btn-sm btn-ghost" title="Next Bar (L)">⏭</button>
+            </div>
+
+            <!-- Mode Switcher (Piano / Guitar) -->
             <div class="control-group timeline-mode-group">
-              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-right: 2px;">Timeline View:</label>
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-right: 2px;">Voicing:</label>
               <div class="btn-group mode-toggle-group">
                 <button id="mode-guitar" class="btn btn-sm btn-ghost active" data-mode="guitar">🎸 Guitar</button>
                 <button id="mode-piano" class="btn btn-sm btn-ghost" data-mode="piano">🎹 Piano</button>
@@ -163,10 +171,21 @@
           </div>
         </div>
 
-        <!-- Flowing Single-Row Chord Stream -->
-        <div class="unified-timeline-wrapper">
-          <div id="unified-timeline-container" class="unified-timeline-container">
-            <div class="empty-state">Loading chords from data/chords.csv...</div>
+        <!-- ROW 1: Beat & Measure Aligned Rolling Tape -->
+        <div class="timeline-row-block">
+          <div class="sliding-tape-viewport" id="sliding-tape-viewport">
+            <div id="sliding-tape-track" class="sliding-tape-track">
+              <div class="empty-state">Loading beat-aligned measures...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW 2: Continuous Chord Progression Stream -->
+        <div class="timeline-row-block">
+          <div class="unified-timeline-wrapper" id="unified-timeline-wrapper">
+            <div id="unified-timeline-container" class="unified-timeline-container">
+              <div class="empty-state">Loading chords from data/chords.csv...</div>
+            </div>
           </div>
         </div>
       </section>
@@ -188,6 +207,10 @@
 
           <div class="hero-chord-body">
             <div id="hero-chord-name" class="chord-display-text">--</div>
+            <div class="hero-chord-sub">
+              <span id="hero-chord-desc" class="chord-desc-text">Ready for playback</span>
+              <span id="chord-timing" class="tag-val timing-tag">0.0s – 0.0s</span>
+            </div>
           </div>
         </div>
 
@@ -198,75 +221,62 @@
               <span class="header-icon">🎸</span>
               <h2>Guitar Fretboard & Chart</h2>
             </div>
-
-            <!-- Smart Capo Toolbar -->
-            <div class="capo-controls-group">
-              <div class="capo-select-wrapper">
-                <label for="capo-select" class="capo-label">Capo:</label>
-                <select id="capo-select" class="custom-select capo-select">
-                  <option value="0">None</option>
-                  <option value="1">Capo 1</option>
-                  <option value="2">Capo 2</option>
-                  <option value="3">Capo 3</option>
-                  <option value="4">Capo 4</option>
-                  <option value="5">Capo 5</option>
-                  <option value="6">Capo 6</option>
-                  <option value="7">Capo 7</option>
-                </select>
-              </div>
-              <button id="btn-smart-capo" class="btn btn-sm btn-smart-capo" title="Auto-find easiest open chord capo">
-                ✨ Smart Capo
+            <!-- Capo Controller & Smart Capo Recommendation -->
+            <div class="control-group capo-group">
+              <label for="capo-select">Capo:</label>
+              <select id="capo-select" class="custom-select custom-select-sm">
+                <option value="0">No Capo</option>
+                <option value="1">Capo 1</option>
+                <option value="2">Capo 2</option>
+                <option value="3">Capo 3</option>
+                <option value="4">Capo 4</option>
+                <option value="5">Capo 5</option>
+                <option value="6">Capo 6</option>
+                <option value="7">Capo 7</option>
+              </select>
+              <button id="btn-smart-capo" class="btn btn-sm btn-smart-capo" title="Auto-find best Capo for easiest open chord shapes">
+                ✨ Best: Capo
               </button>
             </div>
           </div>
-          
-          <div class="guitar-wrapper">
-            <div class="guitar-chart-container">
-              <svg id="guitar-chord-svg" viewBox="0 0 240 280" class="guitar-svg"></svg>
+
+          <div class="guitar-fretboard-wrapper">
+            <div class="guitar-meta">
+              <div class="guitar-chord-title" id="guitar-chord-title">--</div>
+              <div class="guitar-sounding-title" id="guitar-sounding-title"></div>
+              <div class="guitar-string-notes" id="guitar-string-notes"></div>
+              <div class="guitar-fingering-label" id="guitar-fingering-label"></div>
             </div>
-            <div class="guitar-chord-meta">
-              <div class="meta-item">
-                <span class="meta-label">Chord Shape</span>
-                <span id="guitar-chord-title" class="meta-val">--</span>
-              </div>
-              <div class="meta-item" id="capo-sounding-item">
-                <span class="meta-label">Sounding Chord</span>
-                <span id="guitar-sounding-title" class="meta-val">--</span>
-              </div>
-              <div class="meta-item string-notes-meta-item" id="guitar-string-notes-item">
-                <span class="meta-label">String Notes (6th → 1st)</span>
-                <div id="guitar-string-notes" class="guitar-string-notes-row">
-                  <span class="string-note-badge">--</span>
-                </div>
-              </div>
+            <div class="fretboard-svg-container">
+              <svg viewBox="0 0 240 280" class="fretboard-svg" id="guitar-chord-svg"></svg>
             </div>
           </div>
         </div>
 
-        <!-- PIANO VISUALIZER CARD -->
+        <!-- PIANO KEYBOARD CARD -->
         <div id="piano-card" class="card piano-card">
           <div class="card-header">
             <div class="header-title">
               <span class="header-icon">🎹</span>
-              <h2>Piano Voicing</h2>
+              <h2>Piano Voicing & Keys</h2>
             </div>
-            <span id="notes-label" class="notes-tag">Notes: --</span>
+            <span class="notes-tag" id="notes-label">Notes: --</span>
           </div>
           <div class="piano-wrapper">
-            <div id="piano-keyboard" class="piano-keyboard">
-              <!-- Keys generated dynamically by JS -->
+            <div class="piano-keyboard" id="piano-keyboard">
+              <!-- Keys generated dynamically in main.js -->
             </div>
           </div>
         </div>
       </section>
 
-      <!-- 4. ALL PRESSING PATTERNS & VOICINGS SECTION -->
-      <section id="alternatives-section" class="card alternatives-section">
-        <div class="alternatives-header">
-          <div class="header-title">
-            <span class="header-icon">🎸</span>
-            <div class="title-with-subtitle">
-              <h2>All Pressing Patterns & Voicings</h2>
+      <!-- 4. ALTERNATIVE CHORD SHAPES & INVERSIONS -->
+      <section class="card alternatives-section" id="alternatives-section">
+        <div class="alt-header">
+          <div class="alt-title-area">
+            <span class="alt-icon">🔄</span>
+            <div>
+              <h3>Alternative Fingerings & Voicings</h3>
               <span class="subheading">All fretboard positions, CAGED shapes & easy variations for <strong id="alt-target-chord" class="alt-target-highlight">--</strong></span>
             </div>
           </div>
@@ -279,151 +289,6 @@
           <div class="empty-state">Play audio or click a chord to see all pressing patterns & fingerings.</div>
         </div>
       </section>
-    </main>
-
-    <!-- 2. BEAT & CHORD ALIGNMENT VIEW (SLIDING WINDOW & LEAD SHEET) -->
-    <main class="alignment-view" id="view-alignment" style="display: none;">
-      <!-- Hero Header & Control Bar -->
-      <div class="alignment-hero-header card">
-        <div class="align-title-group">
-          <div class="align-icon-wrap">📐</div>
-          <div>
-            <h2>Beat & Chord Alignment Visualizer</h2>
-            <p class="subheading">Quantized harmonic progression aligned to 4/4 rhythm beats with sliding window</p>
-          </div>
-        </div>
-
-        <div class="align-stats-row">
-          <div class="align-stat-pill">
-            <span class="stat-label">Total Bars</span>
-            <span id="align-total-bars" class="stat-val">--</span>
-          </div>
-          <div class="align-stat-pill">
-            <span class="stat-label">Tempo</span>
-            <span id="align-bpm" class="stat-val">-- BPM</span>
-          </div>
-          <div class="align-stat-pill">
-            <span class="stat-label">Meter</span>
-            <span class="stat-val">4/4 Time</span>
-          </div>
-          <div class="align-stat-pill">
-            <span class="stat-label">Total Beats</span>
-            <span id="align-total-beats" class="stat-val">--</span>
-          </div>
-        </div>
-
-        <div class="align-controls-bar">
-          <!-- Sliding Window vs Full Grid Mode Switcher -->
-          <div class="align-mode-toggle-group">
-            <button id="btn-align-mode-sliding" class="btn btn-sm btn-align-mode active" title="Rolling Sliding Window of measures with continuous playhead">
-              <span>🎠 Sliding Window</span>
-            </button>
-            <button id="btn-align-mode-grid" class="btn btn-sm btn-align-mode" title="Full Sheet Grid of all measures">
-              <span>📑 Full Grid</span>
-            </button>
-          </div>
-
-          <!-- Synchronized Capo Dropdown & Smart Capo Recommendation -->
-          <div class="control-group align-capo-group">
-            <label for="align-capo-select">🎸 Capo:</label>
-            <select id="align-capo-select" class="custom-select select-sm">
-              <option value="0">No Capo</option>
-              <option value="1">Capo 1</option>
-              <option value="2">Capo 2</option>
-              <option value="3">Capo 3</option>
-              <option value="4">Capo 4</option>
-              <option value="5">Capo 5</option>
-              <option value="6">Capo 6</option>
-              <option value="7">Capo 7</option>
-            </select>
-            <button id="btn-align-smart-capo" class="btn btn-sm btn-smart-capo" title="Auto-find best Capo for easiest open chord shapes">
-              ✨ Best: Capo
-            </button>
-          </div>
-
-          <div class="align-search-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="align-filter-input" placeholder="Search chord (e.g. G#), or Bar #..." class="search-input">
-          </div>
-          <label class="toggle-control" title="Auto-scroll to follow audio playback">
-            <input type="checkbox" id="align-auto-scroll" checked>
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Auto-Follow</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Comparative Alignment Timeline Track -->
-      <div class="card dual-track-card">
-        <div class="dual-track-header">
-          <div class="dual-title">
-            <span>⏱️ Measure Ribbon & Beat Alignment Track</span>
-            <span class="dual-hint">Click any bar to jump audio</span>
-          </div>
-        </div>
-        <div class="dual-timeline-wrapper">
-          <div id="alignment-dual-track" class="dual-timeline-track"></div>
-          <div id="dual-track-playhead" class="dual-track-playhead"></div>
-        </div>
-      </div>
-
-      <!-- 1. SLIDING WINDOW VIEW SECTION -->
-      <div id="align-sliding-container" class="sliding-view-container">
-        <!-- Spotlight Active Bar Stage -->
-        <div class="card sliding-spotlight-card">
-          <div class="spotlight-header">
-            <div class="spotlight-bar-meta">
-              <span class="spotlight-badge">⭐ ACTIVE MEASURE</span>
-              <h3 id="spotlight-bar-title">BAR --</h3>
-              <span id="spotlight-bar-time" class="spotlight-time">0.0s – 0.0s</span>
-            </div>
-            <div class="spotlight-nav-controls">
-              <button id="btn-spotlight-prev" class="btn btn-sm btn-ghost" title="Previous Bar">⏮ Prev Bar</button>
-              <button id="btn-spotlight-next" class="btn btn-sm btn-ghost" title="Next Bar">Next Bar ⏭</button>
-            </div>
-          </div>
-          <div id="spotlight-beats-row" class="spotlight-beats-row">
-            <div class="empty-state">Play audio or click a bar to view active measure.</div>
-          </div>
-        </div>
-
-        <!-- Continuous Sliding Tape Window -->
-        <div class="card sliding-tape-card">
-          <div class="tape-header">
-            <div class="tape-title">
-              <span>🎞️ Rolling Measure Tape (Sliding Conveyor)</span>
-              <span class="tape-hint">Past bars slide left &larr; &nbsp; [ CENTER ACTIVE WINDOW ] &nbsp; &rarr; Upcoming bars slide right</span>
-            </div>
-            <div class="tape-window-controls">
-              <span class="tape-zoom-label">Window Size:</span>
-              <select id="sliding-window-size-select" class="custom-select select-sm">
-                <option value="5">5 Bars</option>
-                <option value="7" selected>7 Bars (Standard)</option>
-                <option value="9">9 Bars (Wide)</option>
-                <option value="all">All Bars (Full Stream)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="sliding-tape-viewport" id="sliding-tape-viewport">
-            <div class="sliding-center-needle"></div>
-            <div id="sliding-tape-track" class="sliding-tape-track">
-              <!-- Rendered dynamically by alignment.js -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. FULL LEAD SHEET GRID SECTION -->
-      <div id="align-grid-container" class="alignment-grid-container card" style="display: none;">
-        <div class="lead-sheet-title-bar">
-          <h3>🎼 Full Lead Sheet Measure Grid</h3>
-          <span class="lead-sheet-hint">Each box represents 1 Bar (Measure) with 4 Beat slots. Click any beat to play.</span>
-        </div>
-        <div id="alignment-measures-grid" class="alignment-measures-grid">
-          <div class="empty-state">Loading beat-aligned chords...</div>
-        </div>
-      </div>
     </main>
 
     <!-- 3. GUITAR CHORD LIBRARY VIEW (CHORD_ALTERNATIVES_DB) -->
