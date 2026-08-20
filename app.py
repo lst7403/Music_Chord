@@ -151,6 +151,79 @@ def get_chords():
     }
 
 
+@app.get("/api/beats")
+def get_beats():
+    """Parse and return beat and downbeat timestamps from data/beats.csv."""
+    csv_path = DATA_DIR / "beats.csv"
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail="beats.csv not found in data directory")
+
+    beats = []
+    downbeats = []
+    times = []
+
+    with open(csv_path, mode="r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                t = float(row["time"])
+                beat_num = int(row.get("beat", 1))
+                is_downbeat = str(row.get("is_downbeat", "false")).lower() in ("true", "1", "t")
+
+                item = {
+                    "time": round(t, 3),
+                    "beat": beat_num,
+                    "is_downbeat": is_downbeat
+                }
+                beats.append(item)
+                times.append(t)
+                if is_downbeat:
+                    downbeats.append(round(t, 3))
+            except (ValueError, KeyError):
+                continue
+
+    # Estimate BPM from intervals
+    bpm = 0.0
+    if len(times) > 1:
+        import numpy as np
+        diffs = np.diff(times)
+        valid = diffs[(diffs > 0.2) & (diffs < 2.0)]
+        if len(valid) > 0:
+            bpm = round(float(60.0 / np.median(valid)), 1)
+
+    return {
+        "total_beats": len(beats),
+        "total_downbeats": len(downbeats),
+        "bpm": bpm,
+        "beats": beats,
+        "downbeats": downbeats
+    }
+
+
+@app.get("/api/aligned-chords")
+def get_aligned_chords():
+    """Parse and return beat-aligned chord progression grouped by measures/bars."""
+    aligned_csv = DATA_DIR / "aligned_chords.csv"
+    chords_csv = DATA_DIR / "chords.csv"
+    beats_csv = DATA_DIR / "beats.csv"
+
+    if not chords_csv.exists() or not beats_csv.exists():
+        raise HTTPException(status_code=404, detail="chords.csv or beats.csv not found in data directory")
+
+    from pipeline import align_chords_to_beats, save_aligned_chords
+    res = align_chords_to_beats(chords_csv, beats_csv)
+    if not aligned_csv.exists():
+        save_aligned_chords(res, aligned_csv)
+
+    return {
+        "total_measures": res["total_measures"],
+        "total_beats": res["total_beats"],
+        "bpm": res["bpm"],
+        "measures": res["measures"],
+        "records": res["records"]
+    }
+
+
 @app.get("/api/stems")
 def get_stems():
     """List available audio stems in data directory."""

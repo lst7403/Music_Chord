@@ -4,8 +4,9 @@ This repository contains a full pipeline and interactive web application for:
 1. **Audio Source Separation** using **Demucs** (`htdemucs`) to separate tracks into individual stems (**Vocals**, **Drums**, **Bass**, **Other**) directly into `data/`.
 2. **Audio Stem Combination** (`combine.ipynb`) to merge isolated stems (**Bass + Other**) into harmonic accompaniment (`data/bass_other.wav`).
 3. **Musical Chord Recognition** using the **BTC (Bi-directional Transformer for Chord Recognition)** model (`puar-playground/btc-chord`) on harmonic accompaniment.
-4. **Interactive FastAPI Web App** (`app.py`) for synchronized real-time chord visualization, interactive piano voicing, dynamic guitar chord fretboard diagrams, multi-stem audio switching, pitch transposition, and scrubbable timeline.
-5. **Notebook Server Control** (`server.ipynb`) to start, monitor, and stop the web server directly inside a Jupyter notebook.
+4. **Beat & Downbeat Tracking** (`beat.ipynb`) using the **`beat_this`** state-of-the-art transformer model to detect beat timestamps, measure downbeats, and estimate song tempo (BPM).
+5. **Interactive FastAPI Web App** (`app.py`) for synchronized real-time chord visualization, interactive piano voicing, dynamic guitar chord fretboard diagrams, multi-stem audio switching, pitch transposition, and scrubbable timeline.
+6. **Notebook Server Control** (`server.ipynb`) to start, monitor, and stop the web server directly inside a Jupyter notebook.
 
 ---
 
@@ -32,9 +33,11 @@ Install PyTorch and TorchAudio for your CUDA version (e.g. CUDA 12.8 / 13.0):
 
 ```bash
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu130
-pip install demucs
+pip install demucs beat-this
 pip install ipykernel numpy soundfile librosa transformers huggingface_hub scipy pandas tqdm fastapi uvicorn python-multipart
 ```
+
+> **Note**: `beat-this` is the state-of-the-art transformer model used for automatic beat and downbeat tracking in [`beat.ipynb`](./beat.ipynb). You can install it directly via `pip install beat-this`.
 
 ---
 
@@ -45,6 +48,8 @@ All notebooks import from [`pipeline.py`](./pipeline.py) for unified processing:
 1. **[`separate.ipynb`](./separate.ipynb)**: Runs Demucs source separation on `data/music.mp3` &rarr; outputs isolated stems (`vocals.wav`, `drums.wav`, `bass.wav`, `other.wav`).
 2. **[`combine.ipynb`](./combine.ipynb)**: Merges stems &rarr; generates `data/bass_other.wav` (harmonic accompaniment) and `data/instrumental.wav` (backing track).
 3. **[`chord_recognition.ipynb`](./chord_recognition.ipynb)**: Runs BTC Transformer on GPU &rarr; exports timeline to `data/chords.csv`.
+4. **[`beat.ipynb`](./beat.ipynb)**: Runs BeatThis Transformer on GPU &rarr; extracts beat and downbeat timestamps and exports to `data/beats.csv`.
+5. **[`align.ipynb`](./align.ipynb)**: Aligns chord intervals to discrete rhythm beats and measures &rarr; exports quantized lead sheet to `data/aligned_chords.csv`.
 
 ---
 
@@ -93,7 +98,8 @@ seperate/
 │   ├── other.wav                     # Remaining instruments stem
 │   ├── bass_other.wav                # Combined harmonic accompaniment (Bass + Other)
 │   ├── instrumental.wav              # Combined instrumental backing track (Drums + Bass + Other)
-│   └── chords.csv                    # Chord timeline (CSV format)
+│   ├── chords.csv                    # Chord timeline (CSV format)
+│   └── beats.csv                     # Beat and downbeat timestamps (CSV format)
 ├── static/
 │   ├── index.html                    # Frontend user interface
 │   ├── style.css                     # Modern dark glassmorphism theme
@@ -105,12 +111,13 @@ seperate/
 │       ├── piano.js                  # Virtual Piano keyboard builder
 │       ├── timeline.js               # Timeline overview & progression sheet
 │       └── main.js                   # Application controller & state sync
-├── pipeline.py                       # Unified audio & chord AI processing engine
+├── pipeline.py                       # Unified audio, chord & beat AI processing engine
 ├── app.py                            # FastAPI backend server
 ├── server.ipynb                      # Server controller notebook (start / check / stop)
 ├── separate.ipynb                    # Step 1: Demucs source separation notebook
 ├── combine.ipynb                     # Step 2: Audio stem combination notebook
 ├── chord_recognition.ipynb           # Step 3: BTC chord recognition notebook
+├── beat.ipynb                        # Step 4: BeatThis beat & downbeat tracking notebook
 ├── README.md                         # Installation & usage documentation
 └── .gitignore                        # Ignores data audio while preserving data/ folder
 ```

@@ -4,13 +4,13 @@
 
 let audioCtx = null;
 
-function getAudioContext() {
+export function getAudioContext() {
   if (!audioCtx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     audioCtx = new AudioContext();
   }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
   }
   return audioCtx;
 }
@@ -84,3 +84,43 @@ export function playGuitarStrum(frets, strumSpeed = 0.032) {
     console.warn('Web Audio synthesis error:', err);
   }
 }
+
+/**
+ * Synthesize a loud, crisp acoustic metronome click
+ * @param {boolean} isDownbeat - True for accented downbeat (Beat 1)
+ */
+export function playMetronomeTick(isDownbeat = false) {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
+
+    // Dual-tone click: Body oscillator + High transient click
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    // High accent: 2200Hz -> 700Hz downbeat, 1400Hz -> 450Hz regular beat
+    osc.type = isDownbeat ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(isDownbeat ? 2200 : 1400, now);
+    osc.frequency.exponentialRampToValueAtTime(isDownbeat ? 700 : 450, now + 0.045);
+
+    // Punchy volume envelope
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(isDownbeat ? 0.95 : 0.70, now + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } catch (e) {
+    console.warn('Metronome audio error:', e);
+  }
+}
+
+
