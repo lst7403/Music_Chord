@@ -13,7 +13,7 @@ import {
 import { initUploadModal } from './upload.js';
 import { initChordLibrary, navigateToChordInLibrary } from './chord-library.js';
 import { getAudioContext, playMetronomeTick } from './audio-synth.js';
-import { initEditorView, loadEditorData, updateEditorPlayhead, editorState } from './editor.js';
+import { initEditorView, loadEditorData, updateEditorPlayhead, applyEditorTransposition, editorState } from './editor.js';
 
 // --- STATE ---
 const state = {
@@ -299,24 +299,26 @@ function applyTransposition() {
     el.transposeVal.textContent = state.transposeSemitones > 0 ? `+${state.transposeSemitones}` : state.transposeSemitones;
   }
 
-  // Calculate and update Smart Capo recommendation
-  if (el.btnSmartCapo) {
-    const smart = findBestCapo(state.activeChords);
+  // Calculate and update Smart Capo recommendation across all smart capo buttons
+  const smart = findBestCapo(state.activeChords);
+  document.querySelectorAll('.btn-smart-capo').forEach(btn => {
     if (smart.bestCapo > 0) {
-      el.btnSmartCapo.textContent = `✨ Best: Capo ${smart.bestCapo}`;
-      el.btnSmartCapo.title = `Auto-apply optimal Capo ${smart.bestCapo} (${smart.openPercent}% open shapes)`;
-      el.btnSmartCapo.dataset.recommended = smart.bestCapo;
-      el.btnSmartCapo.classList.add('has-recommendation');
+      btn.textContent = `✨ Best: Capo ${smart.bestCapo}`;
+      btn.title = `Auto-apply optimal Capo ${smart.bestCapo} (${smart.openPercent}% open shapes)`;
+      btn.dataset.recommended = smart.bestCapo;
+      btn.classList.add('has-recommendation');
     } else {
-      el.btnSmartCapo.textContent = `✨ Best: No Capo`;
-      el.btnSmartCapo.title = `Optimal playability with No Capo (${smart.openPercent}% open shapes)`;
-      el.btnSmartCapo.dataset.recommended = 0;
-      el.btnSmartCapo.classList.remove('has-recommendation');
+      btn.textContent = `✨ Best: No Capo`;
+      btn.title = `Optimal playability with No Capo (${smart.openPercent}% open shapes)`;
+      btn.dataset.recommended = 0;
+      btn.classList.remove('has-recommendation');
     }
-  }
+  });
 
-  // Sync Capo dropdown value
-  if (el.capoSelect) el.capoSelect.value = state.capoFret.toString();
+  // Sync all Capo dropdown values across the page (header, visualizer card, editor card)
+  document.querySelectorAll('.capo-select').forEach(selectEl => {
+    selectEl.value = state.capoFret.toString();
+  });
 
   // 1. Re-render Continuous Chord Stream
   renderUnifiedTimeline(el.unifiedTimelineContainer, state.activeChords, (item, index) => {
@@ -326,6 +328,9 @@ function applyTransposition() {
 
   // 2. Re-render Beat-Aligned Rolling Measure Tape
   renderTape();
+
+  // 3. Sync Interactive Editor Transposition and Capo
+  applyEditorTransposition(state.transposeSemitones, state.capoFret);
 
   updateActiveChord(el.audio.currentTime);
 }
@@ -910,23 +915,25 @@ function setupEventListeners() {
 
   function setCapo(fret) {
     state.capoFret = fret;
-    if (el.capoSelect) el.capoSelect.value = fret.toString();
+    document.querySelectorAll('.capo-select').forEach(selectEl => {
+      selectEl.value = fret.toString();
+    });
     applyTransposition();
     onChordChanged(state.currentChordIndex);
   }
 
-  if (el.capoSelect) {
-    el.capoSelect.addEventListener('change', (e) => {
+  document.querySelectorAll('.capo-select').forEach(selectEl => {
+    selectEl.addEventListener('change', (e) => {
       setCapo(parseInt(e.target.value, 10) || 0);
     });
-  }
+  });
 
-  if (el.btnSmartCapo) {
-    el.btnSmartCapo.addEventListener('click', () => {
+  document.querySelectorAll('.btn-smart-capo').forEach(btn => {
+    btn.addEventListener('click', () => {
       const smart = findBestCapo(state.activeChords);
       setCapo(smart.bestCapo);
     });
-  }
+  });
 
   if (el.btnMetronome) {
     el.btnMetronome.addEventListener('click', () => {

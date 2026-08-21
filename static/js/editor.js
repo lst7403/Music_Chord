@@ -68,6 +68,8 @@ let dom = {
   pickerTitle: null,
   pickerSubtitle: null,
   pickerSelectedChord: null,
+  pickerSoundingChord: null,
+  pickerPreviewLabel: null,
   pickerMiniPreview: null,
   pickerRootsGrid: null,
   pickerQualitiesGrid: null,
@@ -135,6 +137,8 @@ function bindDomElements() {
   dom.pickerTitle = document.getElementById('chord-picker-title');
   dom.pickerSubtitle = document.getElementById('chord-picker-subtitle');
   dom.pickerSelectedChord = document.getElementById('picker-selected-chord');
+  dom.pickerSoundingChord = document.getElementById('picker-sounding-chord');
+  dom.pickerPreviewLabel = document.getElementById('picker-preview-label');
   dom.pickerMiniPreview = document.getElementById('picker-mini-preview');
   dom.pickerRootsGrid = document.getElementById('picker-roots-grid');
   dom.pickerQualitiesGrid = document.getElementById('picker-qualities-grid');
@@ -404,6 +408,16 @@ function jumpEditorBar(delta) {
 }
 
 // --- RENDERING EDITABLE TIMELINES ---
+export function applyEditorTransposition(semitones, capoFret) {
+  editorState.transposeSemitones = semitones;
+  editorState.capoFret = capoFret;
+  if (dom.activeBarBadge && editorState.currentMeasure > 0) {
+    const capoBadge = editorState.capoFret > 0 ? ` (Capo ${editorState.capoFret})` : '';
+    dom.activeBarBadge.textContent = `BAR ${editorState.currentMeasure}${capoBadge}`;
+  }
+  renderAllEditorComponents();
+}
+
 export function renderAllEditorComponents() {
   renderEditableMeasureTape();
   renderEditableChordStream();
@@ -1002,19 +1016,27 @@ function setupChordPickerModal() {
 export function openChordPicker(barIdx, beatIdx, currentChordStr = null, chordIndex = null) {
   const m = editorState.measures[barIdx];
   const b = m && m.beats ? m.beats[beatIdx] : null;
-  const initChord = currentChordStr || (b ? b.chord : 'C');
+  const rawChord = currentChordStr || (b ? b.chord : 'C');
+
+  // Convert stored raw/sounding chord into the current visual Capo fingering shape for the picker
+  const soundingChord = transposeChordName(rawChord, editorState.transposeSemitones || 0);
+  const initShape = (editorState.capoFret > 0 && soundingChord !== 'N')
+    ? transposeChordName(soundingChord, -editorState.capoFret)
+    : soundingChord;
 
   editorState.pickerTarget = {
     barIdx,
     beatIdx,
     chordIndex,
-    initChord
+    initChord: initShape,
+    rawChord
   };
 
   // Immediately illuminate active measure, beat, and chord
   if (m) {
     editorState.currentMeasure = m.measure;
-    if (dom.activeBarBadge) dom.activeBarBadge.textContent = `BAR ${m.measure}`;
+    const capoBadge = editorState.capoFret > 0 ? ` (Capo ${editorState.capoFret})` : '';
+    if (dom.activeBarBadge) dom.activeBarBadge.textContent = `BAR ${m.measure}${capoBadge}`;
     document.querySelectorAll('.editor-measure-card.active-tape-bar').forEach(el => el.classList.remove('active-tape-bar'));
     const barEl = document.getElementById(`editor-tape-bar-${m.measure}`);
     if (barEl) barEl.classList.add('active-tape-bar');
@@ -1046,17 +1068,18 @@ export function openChordPicker(barIdx, beatIdx, currentChordStr = null, chordIn
   syncCurrentHeroChord();
 
   if (dom.pickerTitle) {
-    dom.pickerTitle.textContent = b ? `Edit Bar ${m.measure} Beat ${b.beat}` : `Edit Chord`;
+    const capoHeader = editorState.capoFret > 0 ? ` (Capo ${editorState.capoFret})` : '';
+    dom.pickerTitle.textContent = b ? `Edit Bar ${m.measure} Beat ${b.beat}${capoHeader}` : `Edit Chord${capoHeader}`;
   }
 
-  // Parse root and quality
+  // Parse root and quality based on the visual fingering shape
   let root = 'C';
   let quality = '';
-  if (initChord === 'N') {
+  if (initShape === 'N') {
     root = 'N';
   } else {
-    root = normalizeRoot(initChord.split(':')[0].split('/')[0]) || 'C';
-    quality = initChord.includes(':') ? initChord.split(':')[1] : (initChord.slice(root.length) || '');
+    root = normalizeRoot(initShape.split(':')[0].split('/')[0]) || 'C';
+    quality = initShape.includes(':') ? initShape.split(':')[1] : (initShape.slice(root.length) || '');
   }
 
   if (dom.pickerRootsGrid) {
@@ -1088,31 +1111,50 @@ export function openChordPicker(barIdx, beatIdx, currentChordStr = null, chordIn
 }
 
 function updatePickerPreview(fromCustom = false) {
-  let chordName = 'C';
+  let shapeChord = 'C';
 
   if (fromCustom && dom.pickerCustomInput && dom.pickerCustomInput.value.trim()) {
-    chordName = dom.pickerCustomInput.value.trim();
+    shapeChord = dom.pickerCustomInput.value.trim();
   } else {
     const activeRoot = dom.pickerRootsGrid?.querySelector('.root-chip.active')?.dataset.root || 'C';
     const activeQuality = dom.pickerQualitiesGrid?.querySelector('.quality-chip.active')?.dataset.quality || '';
 
     if (activeRoot === 'N') {
-      chordName = 'N';
+      shapeChord = 'N';
       if (dom.pickerQualitiesGrid) dom.pickerQualitiesGrid.style.opacity = '0.3';
     } else {
       if (dom.pickerQualitiesGrid) dom.pickerQualitiesGrid.style.opacity = '1';
-      chordName = activeQuality ? `${activeRoot}:${activeQuality}` : activeRoot;
+      shapeChord = activeQuality ? `${activeRoot}:${activeQuality}` : activeRoot;
     }
   }
 
+  const isRest = shapeChord === 'N';
+  const soundingChord = (!isRest && editorState.capoFret > 0)
+    ? transposeChordName(shapeChord, editorState.capoFret)
+    : shapeChord;
+
   if (dom.pickerSelectedChord) {
-    dom.pickerSelectedChord.textContent = formatChordName(chordName);
+    dom.pickerSelectedChord.textContent = isRest ? 'Rest (N)' : formatChordName(shapeChord);
+  }
+
+  if (dom.pickerPreviewLabel) {
+    dom.pickerPreviewLabel.textContent = editorState.capoFret > 0
+      ? `Fingering Shape (Capo ${editorState.capoFret})`
+      : `Selected Chord`;
+  }
+
+  if (dom.pickerSoundingChord) {
+    if (editorState.capoFret > 0 && !isRest) {
+      dom.pickerSoundingChord.textContent = `⚡ Capo ${editorState.capoFret} (Sounds as ${formatChordName(soundingChord)})`;
+    } else {
+      dom.pickerSoundingChord.textContent = isRest ? 'Rest / Silence' : `Sounding Pitch: ${formatChordName(soundingChord)}`;
+    }
   }
 
   if (dom.pickerMiniPreview) {
-    const root = chordName === 'N' ? 'N' : normalizeRoot(chordName.split(':')[0]);
+    const root = isRest ? 'N' : normalizeRoot(shapeChord.split(':')[0]);
     const rootColor = ROOT_COLORS[root] || '#6366f1';
-    dom.pickerMiniPreview.innerHTML = generateMiniGuitarSvg(chordName, rootColor);
+    dom.pickerMiniPreview.innerHTML = generateMiniGuitarSvg(shapeChord, rootColor);
   }
 }
 
@@ -1128,38 +1170,51 @@ function applyPickedChord() {
   if (!editorState.pickerTarget) return;
   const { barIdx, beatIdx, chordIndex } = editorState.pickerTarget;
 
-  let chosenChord = 'C';
+  let chosenShape = 'C';
   if (dom.pickerCustomInput && dom.pickerCustomInput.value.trim()) {
-    chosenChord = dom.pickerCustomInput.value.trim();
+    chosenShape = dom.pickerCustomInput.value.trim();
   } else {
     const activeRoot = dom.pickerRootsGrid?.querySelector('.root-chip.active')?.dataset.root || 'C';
     const activeQuality = dom.pickerQualitiesGrid?.querySelector('.quality-chip.active')?.dataset.quality || '';
-    chosenChord = activeRoot === 'N' ? 'N' : (activeQuality ? `${activeRoot}:${activeQuality}` : activeRoot);
+    chosenShape = activeRoot === 'N' ? 'N' : (activeQuality ? `${activeRoot}:${activeQuality}` : activeRoot);
+  }
+
+  // The actual stored song chord:
+  // When playing shape S with Capo K and Key Transpose T,
+  // sounding chord is S + K, so raw stored chord is (S + K) - T.
+  let storedChord = chosenShape;
+  if (chosenShape !== 'N') {
+    const netShift = (editorState.capoFret || 0) - (editorState.transposeSemitones || 0);
+    storedChord = transposeChordName(chosenShape, netShift);
   }
 
   const applyWholeBar = dom.pickerApplyWholeBar?.checked || false;
 
-  pushHistoryState(`Set chord ${formatChordName(chosenChord)} in Bar ${barIdx + 1}`);
+  pushHistoryState(`Set chord ${formatChordName(chosenShape)} in Bar ${barIdx + 1}`);
 
   const m = editorState.measures[barIdx];
   if (m && m.beats) {
     if (applyWholeBar) {
       m.beats.forEach(b => {
-        b.chord = chosenChord;
+        b.chord = storedChord;
       });
     } else if (beatIdx !== null && m.beats[beatIdx]) {
-      m.beats[beatIdx].chord = chosenChord;
+      m.beats[beatIdx].chord = storedChord;
     }
   }
 
   if (chordIndex !== null && editorState.chords[chordIndex]) {
-    editorState.chords[chordIndex].chord = chosenChord;
+    editorState.chords[chordIndex].chord = storedChord;
   }
 
   recalculateMeasureNumbersAndTimeline();
   renderAllEditorComponents();
   closeChordPicker();
-  showToast(`✓ Applied ${formatChordName(chosenChord)}`);
+
+  const capoNotice = (editorState.capoFret > 0 && chosenShape !== 'N')
+    ? ` (Capo ${editorState.capoFret} → Sounding: ${formatChordName(transposeChordName(chosenShape, editorState.capoFret))})`
+    : '';
+  showToast(`✓ Applied ${formatChordName(chosenShape)}${capoNotice}`);
 }
 
 // --- SAVE & RESET ENDPOINTS ---
@@ -1274,7 +1329,8 @@ export function updateEditorPlayhead(currentTime) {
 
     if (activeMeasureNum !== editorState.currentMeasure) {
       editorState.currentMeasure = activeMeasureNum;
-      if (dom.activeBarBadge) dom.activeBarBadge.textContent = `BAR ${activeMeasureNum}`;
+      const capoBadge = editorState.capoFret > 0 ? ` (Capo ${editorState.capoFret})` : '';
+      if (dom.activeBarBadge) dom.activeBarBadge.textContent = `BAR ${activeMeasureNum}${capoBadge}`;
 
       document.querySelectorAll('.editor-measure-card.active-tape-bar').forEach(el => el.classList.remove('active-tape-bar'));
       const barEl = document.getElementById(`editor-tape-bar-${activeMeasureNum}`);
@@ -1391,6 +1447,13 @@ function syncCurrentHeroChord() {
   }
   if (dom.heroBeatText) {
     dom.heroBeatText.textContent = `Bar ${editorState.currentMeasure} · Beat ${editorState.currentBeat}`;
+  }
+  if (dom.heroChordDesc) {
+    if (editorState.capoFret > 0 && soundingChord !== 'N') {
+      dom.heroChordDesc.textContent = `Capo ${editorState.capoFret} Shape (Sounding: ${formatChordName(soundingChord)})`;
+    } else {
+      dom.heroChordDesc.textContent = isRest ? 'Rest' : `Sounding: ${formatChordName(soundingChord)}`;
+    }
   }
 
   // Update guitar preview

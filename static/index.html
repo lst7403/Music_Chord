@@ -65,6 +65,24 @@
           </div>
         </div>
 
+        <!-- Capo Controller (Synchronized across Visualizer & Edit Mode) -->
+        <div class="control-group capo-group" id="header-capo-group">
+          <label for="capo-select">Capo:</label>
+          <select id="capo-select" class="custom-select custom-select-sm capo-select">
+            <option value="0">No Capo</option>
+            <option value="1">Capo 1</option>
+            <option value="2">Capo 2</option>
+            <option value="3">Capo 3</option>
+            <option value="4">Capo 4</option>
+            <option value="5">Capo 5</option>
+            <option value="6">Capo 6</option>
+            <option value="7">Capo 7</option>
+          </select>
+          <button id="btn-smart-capo" class="btn btn-sm btn-smart-capo" title="Auto-find best Capo for easiest open chord shapes">
+            ✨ Best: Capo
+          </button>
+        </div>
+
         <!-- Speed Selector -->
         <div class="control-group" id="speed-select-group">
           <label for="speed-select">Speed:</label>
@@ -225,23 +243,6 @@
             <div class="header-title">
               <span class="header-icon">🎸</span>
               <h2>Guitar Fretboard & Chart</h2>
-            </div>
-            <!-- Capo Controller & Smart Capo Recommendation -->
-            <div class="control-group capo-group">
-              <label for="capo-select">Capo:</label>
-              <select id="capo-select" class="custom-select custom-select-sm">
-                <option value="0">No Capo</option>
-                <option value="1">Capo 1</option>
-                <option value="2">Capo 2</option>
-                <option value="3">Capo 3</option>
-                <option value="4">Capo 4</option>
-                <option value="5">Capo 5</option>
-                <option value="6">Capo 6</option>
-                <option value="7">Capo 7</option>
-              </select>
-              <button id="btn-smart-capo" class="btn btn-sm btn-smart-capo" title="Auto-find best Capo for easiest open chord shapes">
-                ✨ Best: Capo
-              </button>
             </div>
           </div>
 
@@ -489,8 +490,9 @@
           <!-- LIVE PREVIEW BANNER -->
           <div class="chord-picker-preview-banner">
             <div class="preview-text-group">
-              <span class="preview-label">Selected Chord</span>
+              <span class="preview-label" id="picker-preview-label">Selected Chord (Fingering Shape)</span>
               <span id="picker-selected-chord" class="preview-chord-name">C</span>
+              <span id="picker-sounding-chord" class="preview-sounding-info" style="font-size: 11.5px; color: var(--accent-amber); font-weight: 700;"></span>
             </div>
             <div class="preview-mini-instrument" id="picker-mini-preview">
               <!-- Mini guitar or piano SVG -->
