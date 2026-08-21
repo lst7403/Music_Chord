@@ -27,6 +27,11 @@
           <span class="tab-icon">🎼</span>
           <span>Song Visualizer</span>
         </button>
+        <button id="nav-tab-editor" class="nav-tab-btn" title="Interactive Chord & Beat Editor (Drag, Gap Insert, Delete & Harmony)">
+          <span class="tab-icon">📝</span>
+          <span>Edit Mode</span>
+          <span class="tab-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">Interactive</span>
+        </button>
         <button id="nav-tab-library" class="nav-tab-btn" title="Complete Guitar Chord & Voicings Encyclopedia (CHORD_ALTERNATIVES_DB)">
           <span class="tab-icon">🎸</span>
           <span>Guitar Chord Library</span>
@@ -290,6 +295,270 @@
         </div>
       </section>
     </main>
+
+    <!-- 2. EDIT MODE MAIN CONTENT VIEW (IDENTICAL VISUALS + DRAG, GAP INSERT & CHORD EDIT) -->
+    <main class="main-layout" id="view-editor" style="display: none;">
+      <!-- EDITOR TOP ACTION BAR -->
+      <section class="card editor-toolbar-card">
+        <div class="editor-toolbar-left">
+          <div class="editor-badge-tag">
+            <span class="edit-icon">📝</span>
+            <span class="edit-title">Interactive Harmony & Beat Editor</span>
+          </div>
+          <div class="editor-tip-pill" title="Editing hints">
+            <span class="tip-icon">💡</span>
+            <span>Drag beats/bars to reorder · Hover gaps to insert (<strong>+</strong>) · Click cell to edit chord</span>
+          </div>
+        </div>
+
+        <div class="editor-toolbar-actions">
+          <button id="btn-editor-undo" class="btn btn-sm btn-ghost" title="Undo last change (Ctrl+Z)" disabled>
+            <span>↩ Undo</span>
+          </button>
+          <button id="btn-editor-redo" class="btn btn-sm btn-ghost" title="Redo (Ctrl+Y)" disabled>
+            <span>↪ Redo</span>
+          </button>
+          <button id="btn-editor-reset" class="btn btn-sm btn-ghost" title="Reset all changes back to original AI predictions">
+            <span>🔄 Reset to AI</span>
+          </button>
+          <button id="btn-editor-save" class="btn btn-sm btn-hero-action btn-save-pulse" title="Save your edited chords & beats to disk (chords.csv & beats.csv)">
+            <span>💾 Save Changes</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- EDITABLE DUAL-ROW TIMELINE: MEASURE TAPE (ROW 1) + CONTINUOUS STREAM (ROW 2) -->
+      <section class="card chord-timeline-section editor-timeline-section">
+        <div class="sheet-header">
+          <div class="sheet-title-area">
+            <div class="section-title-tag">
+              <span class="icon">🎼</span>
+              <h2>Interactive Timeline (Edit Chords & Beats)</h2>
+            </div>
+            <div class="sheet-toggles">
+              <label class="toggle-label">
+                <input type="checkbox" id="editor-auto-scroll-toggle" checked>
+                <span class="toggle-custom"></span>
+                Auto-Shift Playhead
+              </label>
+            </div>
+          </div>
+
+          <!-- Controls in timeline section -->
+          <div class="sheet-controls-area">
+            <div class="align-search-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="editor-timeline-search" placeholder="Search / filter chords..." class="search-input">
+            </div>
+
+            <!-- Tempo / BPM Controller -->
+            <div class="control-group editor-bpm-group" title="Edit song tempo (BPM)">
+              <span class="bpm-icon">🥁</span>
+              <label for="editor-bpm-input" style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-right: 2px;">Tempo:</label>
+              <div class="bpm-input-wrap">
+                <button id="btn-editor-bpm-dec" class="btn btn-sm btn-icon" title="Decrease BPM (-1)">-</button>
+                <input type="number" id="editor-bpm-input" min="30" max="300" step="1" value="120" class="editor-bpm-input">
+                <span class="bpm-unit-text">BPM</span>
+                <button id="btn-editor-bpm-inc" class="btn btn-sm btn-icon" title="Increase BPM (+1)">+</button>
+              </div>
+              <button id="btn-editor-bpm-tap" class="btn btn-sm btn-ghost btn-tap-tempo" title="Click or tap in rhythm to calculate BPM">
+                👆 Tap
+              </button>
+              <button id="btn-editor-bpm-rescale" class="btn btn-sm btn-ghost btn-rescale-tempo" title="Scale beat grid intervals to match this new BPM">
+                ⚡ Rescale Grid
+              </button>
+            </div>
+
+            <!-- Tape Navigation & Active Bar Badge -->
+            <div class="tape-nav-controls">
+              <button id="btn-editor-prev-bar" class="btn btn-sm btn-ghost" title="Previous Bar">⏮</button>
+              <span class="active-bar-badge" id="editor-tape-active-bar-badge">BAR 1</span>
+              <button id="btn-editor-next-bar" class="btn btn-sm btn-ghost" title="Next Bar">⏭</button>
+            </div>
+
+            <!-- Mode Switcher (Piano / Guitar) -->
+            <div class="control-group timeline-mode-group">
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-right: 2px;">Voicing:</label>
+              <div class="btn-group mode-toggle-group">
+                <button id="editor-mode-guitar" class="btn btn-sm btn-ghost active" data-mode="guitar">🎸 Guitar</button>
+                <button id="editor-mode-piano" class="btn btn-sm btn-ghost" data-mode="piano">🎹 Piano</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW 1: Editable Rolling Measure Tape (With Draggable Beats, Bars, Delete Buttons & Gap Inserters) -->
+        <div class="timeline-row-block">
+          <div class="sliding-tape-viewport" id="editor-sliding-tape-viewport">
+            <div id="editor-sliding-tape-track" class="sliding-tape-track editor-track">
+              <div class="empty-state">Loading editable measures...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW 2: Editable Continuous Chord Progression Stream -->
+        <div class="timeline-row-block">
+          <div class="unified-timeline-wrapper" id="editor-unified-timeline-wrapper">
+            <div id="editor-unified-timeline-container" class="unified-timeline-container editor-track">
+              <div class="empty-state">Loading editable chords...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INSTRUMENT & HARMONY STAGE (SYNCHRONIZED WITH EDITOR) -->
+      <section class="stage-grid" id="editor-stage-grid">
+        <!-- CURRENT HARMONY CARD -->
+        <div class="card hero-chord-card">
+          <div class="hero-chord-header">
+            <div class="header-title">
+              <span class="header-icon">✨</span>
+              <span class="subheading">CURRENT HARMONY</span>
+            </div>
+            <div id="editor-hero-beat-badge" class="hero-beat-badge" title="Rhythm & Beat Tracker">
+              <span class="beat-pulse-indicator"></span>
+              <span id="editor-hero-beat-text">Beat --</span>
+            </div>
+          </div>
+
+          <div class="hero-chord-body">
+            <div id="editor-hero-chord-name" class="chord-display-text">--</div>
+            <div class="hero-chord-sub">
+              <span id="editor-hero-chord-desc" class="chord-desc-text">Ready for editing</span>
+              <button id="btn-quick-edit-current" class="btn btn-sm btn-ghost edit-chord-pill-btn" title="Edit this chord">
+                ✏️ Edit Chord
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- GUITAR CHORD DIAGRAM CARD -->
+        <div id="editor-guitar-card" class="card guitar-card">
+          <div class="card-header">
+            <div class="header-title">
+              <span class="header-icon">🎸</span>
+              <h2>Guitar Fretboard Preview</h2>
+            </div>
+          </div>
+          <div class="guitar-fretboard-wrapper">
+            <div class="guitar-meta">
+              <div class="guitar-chord-title" id="editor-guitar-chord-title">--</div>
+              <div class="guitar-sounding-title" id="editor-guitar-sounding-title"></div>
+              <div class="guitar-string-notes" id="editor-guitar-string-notes"></div>
+              <div class="guitar-fingering-label" id="editor-guitar-fingering-label"></div>
+            </div>
+            <div class="fretboard-svg-container">
+              <svg viewBox="0 0 240 280" class="fretboard-svg" id="editor-guitar-chord-svg"></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- PIANO KEYBOARD CARD -->
+        <div id="editor-piano-card" class="card piano-card">
+          <div class="card-header">
+            <div class="header-title">
+              <span class="header-icon">🎹</span>
+              <h2>Piano Keys Preview</h2>
+            </div>
+            <span class="notes-tag" id="editor-notes-label">Notes: --</span>
+          </div>
+          <div class="piano-wrapper">
+            <div class="piano-keyboard" id="editor-piano-keyboard">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- INTERACTIVE CHORD PICKER POPOVER MODAL -->
+    <div id="chord-picker-modal" class="modal-overlay" aria-hidden="true">
+      <div class="modal-card chord-picker-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="modal-icon">🎼</div>
+            <div>
+              <h3 id="chord-picker-title">Edit Chord</h3>
+              <p id="chord-picker-subtitle" class="modal-subtitle">Select root and harmonic quality or type a custom chord name</p>
+            </div>
+          </div>
+          <button id="btn-close-chord-picker" class="btn-modal-close" title="Close (Esc)">✕</button>
+        </div>
+
+        <div class="modal-body chord-picker-body">
+          <!-- LIVE PREVIEW BANNER -->
+          <div class="chord-picker-preview-banner">
+            <div class="preview-text-group">
+              <span class="preview-label">Selected Chord</span>
+              <span id="picker-selected-chord" class="preview-chord-name">C</span>
+            </div>
+            <div class="preview-mini-instrument" id="picker-mini-preview">
+              <!-- Mini guitar or piano SVG -->
+            </div>
+          </div>
+
+          <!-- 1. ROOT NOTE SELECTOR -->
+          <div class="picker-section">
+            <label class="picker-section-label">Root Note:</label>
+            <div class="picker-roots-grid" id="picker-roots-grid">
+              <button class="picker-chip root-chip active" data-root="C">C</button>
+              <button class="picker-chip root-chip" data-root="C#">C#</button>
+              <button class="picker-chip root-chip" data-root="D">D</button>
+              <button class="picker-chip root-chip" data-root="D#">D#</button>
+              <button class="picker-chip root-chip" data-root="E">E</button>
+              <button class="picker-chip root-chip" data-root="F">F</button>
+              <button class="picker-chip root-chip" data-root="F#">F#</button>
+              <button class="picker-chip root-chip" data-root="G">G</button>
+              <button class="picker-chip root-chip" data-root="G#">G#</button>
+              <button class="picker-chip root-chip" data-root="A">A</button>
+              <button class="picker-chip root-chip" data-root="A#">A#</button>
+              <button class="picker-chip root-chip" data-root="B">B</button>
+              <button class="picker-chip root-chip chip-rest" data-root="N">Rest (N)</button>
+            </div>
+          </div>
+
+          <!-- 2. QUALITY SELECTOR -->
+          <div class="picker-section" id="picker-quality-section">
+            <label class="picker-section-label">Chord Quality / Extension:</label>
+            <div class="picker-qualities-grid" id="picker-qualities-grid">
+              <button class="picker-chip quality-chip active" data-quality="">Major</button>
+              <button class="picker-chip quality-chip" data-quality="m">Minor (m)</button>
+              <button class="picker-chip quality-chip" data-quality="7">7 (Dominant)</button>
+              <button class="picker-chip quality-chip" data-quality="maj7">maj7</button>
+              <button class="picker-chip quality-chip" data-quality="m7">m7</button>
+              <button class="picker-chip quality-chip" data-quality="sus4">sus4</button>
+              <button class="picker-chip quality-chip" data-quality="sus2">sus2</button>
+              <button class="picker-chip quality-chip" data-quality="dim">dim</button>
+              <button class="picker-chip quality-chip" data-quality="aug">aug</button>
+              <button class="picker-chip quality-chip" data-quality="add9">add9</button>
+            </div>
+          </div>
+
+          <!-- 3. CUSTOM INPUT & SCOPE OPTIONS -->
+          <div class="picker-custom-row">
+            <div class="custom-input-group">
+              <label for="picker-custom-input">Custom Chord Name:</label>
+              <input type="text" id="picker-custom-input" placeholder="e.g. F#m7b5 or G/B" class="search-input">
+            </div>
+
+            <div class="picker-scope-group">
+              <label class="toggle-label" title="Apply this chord to every beat in the current bar">
+                <input type="checkbox" id="picker-apply-whole-bar">
+                <span class="toggle-custom"></span>
+                Apply to whole bar
+              </label>
+            </div>
+          </div>
+
+          <div class="modal-actions picker-actions">
+            <button id="btn-cancel-chord-picker" class="btn btn-ghost">Cancel</button>
+            <button id="btn-apply-chord-picker" class="btn btn-hero-action">
+              <span>✓ Apply Chord</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 3. GUITAR CHORD LIBRARY VIEW (CHORD_ALTERNATIVES_DB) -->
     <main class="chord-library-view" id="view-chord-library" style="display: none;">

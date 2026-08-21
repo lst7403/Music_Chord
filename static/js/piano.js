@@ -45,17 +45,19 @@ export function highlightPianoNotes(container, notesLabel, notes) {
   const allKeys = container.querySelectorAll('.piano-key');
   allKeys.forEach(k => k.classList.remove('active'));
 
-  if (!notes || notes.length === 0) {
+  const notesArr = Array.isArray(notes) ? notes : (typeof notes === 'string' ? [notes] : []);
+
+  if (!notesArr || notesArr.length === 0) {
     if (notesLabel) notesLabel.textContent = 'Notes: --';
     return;
   }
 
   if (notesLabel) {
-    notesLabel.textContent = 'Notes: ' + notes.join(' • ');
+    notesLabel.textContent = 'Notes: ' + notesArr.join(' • ');
   }
 
   allKeys.forEach(k => {
-    if (notes.includes(k.dataset.pitch)) {
+    if (notesArr.includes(k.dataset.pitch)) {
       k.classList.add('active');
     }
   });

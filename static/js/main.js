@@ -13,10 +13,11 @@ import {
 import { initUploadModal } from './upload.js';
 import { initChordLibrary, navigateToChordInLibrary } from './chord-library.js';
 import { getAudioContext, playMetronomeTick } from './audio-synth.js';
+import { initEditorView, loadEditorData, updateEditorPlayhead, editorState } from './editor.js';
 
 // --- STATE ---
 const state = {
-  currentView: 'visualizer', // 'visualizer' | 'library'
+  currentView: 'visualizer', // 'visualizer' | 'editor' | 'library'
   timelineView: 'stream',    // 'stream' | 'tape'
   audio: document.getElementById('audio-player'),
   rawChords: [],
@@ -48,8 +49,10 @@ const state = {
 const el = {
   audio: document.getElementById('audio-player'),
   navTabVisualizer: document.getElementById('nav-tab-visualizer'),
+  navTabEditor: document.getElementById('nav-tab-editor'),
   navTabLibrary: document.getElementById('nav-tab-library'),
   viewVisualizer: document.getElementById('view-visualizer'),
+  viewEditor: document.getElementById('view-editor'),
   viewChordLibrary: document.getElementById('view-chord-library'),
   btnJumpLibrary: document.getElementById('btn-jump-library'),
   stemSelect: document.getElementById('stem-select'),
@@ -422,6 +425,11 @@ function updateActiveChord(currentTime) {
   if (newIndex !== state.currentChordIndex) {
     state.currentChordIndex = newIndex;
     onChordChanged(newIndex);
+  }
+
+  // 4. Synchronize Interactive Editor if active
+  if (editorState.active) {
+    updateEditorPlayhead(currentTime);
   }
 
   // Update Scrubber Position
@@ -936,6 +944,9 @@ function setupEventListeners() {
   if (el.navTabVisualizer) {
     el.navTabVisualizer.addEventListener('click', () => switchView('visualizer'));
   }
+  if (el.navTabEditor) {
+    el.navTabEditor.addEventListener('click', () => switchView('editor'));
+  }
   if (el.navTabLibrary) {
     el.navTabLibrary.addEventListener('click', () => switchView('library'));
   }
@@ -949,6 +960,17 @@ function setupEventListeners() {
       navigateToChordInLibrary(chordToOpen);
     });
   }
+
+  // Listen for edits saved to disk
+  window.addEventListener('chords-updated-on-disk', async () => {
+    try {
+      await fetchChords();
+      await fetchBeats();
+      await fetchAlignedChords();
+    } catch (e) {
+      console.warn('Error refreshing chords:', e);
+    }
+  });
 
   // Smooth horizontal scroll with mouse wheel on both timeline containers
   if (el.unifiedTimelineContainer) {
@@ -990,13 +1012,22 @@ function setupEventListeners() {
 function switchView(viewName) {
   state.currentView = viewName;
   const isVis = viewName === 'visualizer';
+  const isEdit = viewName === 'editor';
   const isLib = viewName === 'library';
 
+  editorState.active = isEdit;
+
   if (el.navTabVisualizer) el.navTabVisualizer.classList.toggle('active', isVis);
+  if (el.navTabEditor) el.navTabEditor.classList.toggle('active', isEdit);
   if (el.navTabLibrary) el.navTabLibrary.classList.toggle('active', isLib);
 
   if (el.viewVisualizer) el.viewVisualizer.style.display = isVis ? 'flex' : 'none';
+  if (el.viewEditor) el.viewEditor.style.display = isEdit ? 'flex' : 'none';
   if (el.viewChordLibrary) el.viewChordLibrary.style.display = isLib ? 'block' : 'none';
+
+  if (isEdit) {
+    loadEditorData(state.alignedMeasures, state.activeChords, state.bpm);
+  }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1007,6 +1038,7 @@ function init() {
   setInstrumentMode('guitar');
   setupEventListeners();
   initChordLibrary('chord-library-content');
+  initEditorView(el.audio, state.alignedMeasures, state.activeChords, state.transposeSemitones, state.capoFret, state.bpm);
   initUploadModal({
     onProcessingComplete: async () => {
       try {
@@ -1026,7 +1058,12 @@ function init() {
   fetchStems();
   fetchChords();
   fetchBeats();
-  fetchAlignedChords();
+  fetchAlignedChords().then(() => {
+    if (editorState.active) {
+      loadEditorData(state.alignedMeasures, state.rawChords);
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
+

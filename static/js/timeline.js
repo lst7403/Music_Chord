@@ -16,14 +16,26 @@ export function formatTimePrecise(seconds) {
 }
 
 // Generate Mini Guitar Fretboard SVG (Enlarged narrow 6 strings, 5 frets for all CAGED positions)
-export function generateMiniGuitarSvg(chordInput, rootColor) {
+export function generateMiniGuitarSvg(chordInput, rootColor = '#6366f1') {
   if (!chordInput || chordInput === 'N') {
-    return `<div class="mini-rest-label">Rest</div>`;
+    return `
+      <svg viewBox="0 0 86 86" class="mini-fretboard-svg mini-rest-fretboard-svg">
+        <rect x="15" y="15" width="56" height="66" rx="6" fill="#0a0f1d" stroke="#334155" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <circle cx="43" cy="40" r="16" fill="rgba(148, 163, 184, 0.08)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <text x="43" y="47" fill="#94a3b8" font-size="22" font-weight="900" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">𝄽</text>
+        <text x="43" y="70" fill="#64748b" font-size="9.5" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle" letter-spacing="1.5">REST</text>
+      </svg>
+    `;
   }
 
   const chordData = typeof chordInput === 'object' && chordInput.frets ? chordInput : getGuitarChordShape(chordInput);
   if (!chordData) {
-    return `<div class="mini-rest-label">Custom</div>`;
+    return `
+      <svg viewBox="0 0 86 86" class="mini-fretboard-svg mini-custom-fretboard-svg">
+        <rect x="15" y="15" width="56" height="66" rx="6" fill="#0a0f1d" stroke="#334155" stroke-width="1.2"/>
+        <text x="43" y="52" fill="#94a3b8" font-size="11" font-weight="700" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">Custom</text>
+      </svg>
+    `;
   }
 
   const baseFret = chordData.baseFret || 1;
@@ -111,9 +123,16 @@ export function generateMiniGuitarSvg(chordInput, rootColor) {
 }
 
 // Generate Mini Piano Keyboard SVG (1 Octave C to B)
-function generateMiniPianoSvg(chordStr, rootColor) {
+function generateMiniPianoSvg(chordStr, rootColor = '#6366f1') {
   if (!chordStr || chordStr === 'N') {
-    return `<div class="mini-rest-label">Rest</div>`;
+    return `
+      <svg viewBox="0 0 88 50" class="mini-piano-svg mini-rest-piano-svg">
+        <rect x="6" y="5" width="76" height="40" rx="6" fill="#0a0f1d" stroke="#334155" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <circle cx="44" cy="22" r="11" fill="rgba(148, 163, 184, 0.08)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <text x="44" y="27" fill="#94a3b8" font-size="16" font-weight="900" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">𝄽</text>
+        <text x="44" y="41" fill="#64748b" font-size="7.5" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle" letter-spacing="1">REST</text>
+      </svg>
+    `;
   }
 
   const chordNotes = getChordNotes(chordStr);
@@ -198,9 +217,6 @@ export function renderUnifiedTimeline(container, chords, onCardClick, capoFret =
       <div class="card-visual-container">
         <div class="card-mini-guitar">${miniGuitarHtml}</div>
         <div class="card-mini-piano">${miniPianoHtml}</div>
-      </div>
-      <div class="card-chord-bottom">
-        <div class="card-chord-dur">${item.duration.toFixed(1)}s</div>
       </div>
     `;
 
@@ -296,7 +312,7 @@ export function renderRollingMeasureTape(container, measures, onSeek, transposeS
           <div class="tape-mini-chart tape-chart-held"><div class="tape-hold-dash"></div></div>
         `;
       } else {
-        const miniGuitar = b.isRest ? '' : generateMiniGuitarSvg(b.transChord, b.rootColor);
+        const miniGuitar = generateMiniGuitarSvg(b.transChord, b.rootColor);
         const soundingSub = (capoFret > 0 && !b.isRest)
           ? `<div class="tape-beat-sounding">Pitch: <strong>${formatChordName(b.soundingChord)}</strong></div>`
           : '';
@@ -312,10 +328,9 @@ export function renderRollingMeasureTape(container, measures, onSeek, transposeS
         <div class="tape-beat-cell ${b.is_downbeat ? 'downbeat-cell' : ''}" 
              id="tape-beat-${m.measure}-${b.beat}"
              data-time="${b.time}"
-             title="Bar ${m.measure} Beat ${b.beat} (${b.time.toFixed(2)}s): ${displayName}${isRepeated ? ' (Sustained)' : ''}">
+             title="Bar ${m.measure} Beat ${b.beat}: ${displayName}${isRepeated ? ' (Sustained)' : ''}">
           <div class="tape-beat-top" style="background: ${b.isRest ? 'rgba(255,255,255,0.06)' : b.rootColor}">
             <span class="tape-beat-tag">B${b.beat} ${b.is_downbeat ? '★' : ''}</span>
-            <span class="tape-beat-time">${b.time.toFixed(1)}s</span>
           </div>
           ${chordContentHtml}
         </div>
@@ -330,7 +345,6 @@ export function renderRollingMeasureTape(container, measures, onSeek, transposeS
           <span class="tape-bar-num">BAR ${m.measure}</span>
           ${capoTag}
         </div>
-        <span class="tape-bar-time">${m.start.toFixed(1)}s – ${m.end.toFixed(1)}s (${dur}s)</span>
       </div>
       <div class="tape-beats-row" style="grid-template-columns: repeat(${beatCount}, minmax(64px, 1fr));">
         ${beatsHtml}

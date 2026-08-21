@@ -302,6 +302,104 @@ def stream_audio(filename: str):
     return FileResponse(file_path, media_type=media_type)
 
 
+
+@app.post("/api/edit/save")
+async def save_edits(request: Request):
+    """Save user-edited chords, beats, and measures to CSV files."""
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    chords_csv = DATA_DIR / "chords.csv"
+    beats_csv = DATA_DIR / "beats.csv"
+    aligned_csv = DATA_DIR / "aligned_chords.csv"
+
+    chords_backup = DATA_DIR / "chords_backup.csv"
+    beats_backup = DATA_DIR / "beats_backup.csv"
+
+    # 1. Create backups if not existing yet
+    if chords_csv.exists() and not chords_backup.exists():
+        import shutil
+        shutil.copy2(chords_csv, chords_backup)
+    if beats_csv.exists() and not beats_backup.exists():
+        import shutil
+        shutil.copy2(beats_csv, beats_backup)
+
+    # 2. Save beats if provided
+    beats_data = data.get("beats")
+    if beats_data and isinstance(beats_data, list):
+        import pandas as pd
+        df_beats = pd.DataFrame(beats_data)
+        # Ensure correct column types
+        if not df_beats.empty:
+            if "time" in df_beats.columns:
+                df_beats["time"] = df_beats["time"].astype(float).round(3)
+            if "beat" in df_beats.columns:
+                df_beats["beat"] = df_beats["beat"].astype(int)
+            if "is_downbeat" in df_beats.columns:
+                df_beats["is_downbeat"] = df_beats["is_downbeat"].astype(bool)
+            df_beats.to_csv(beats_csv, index=False)
+
+    # 3. Save chords if provided
+    chords_data = data.get("chords")
+    if chords_data and isinstance(chords_data, list):
+        import pandas as pd
+        df_chords = pd.DataFrame(chords_data)
+        if not df_chords.empty:
+            if "start" in df_chords.columns:
+                df_chords["start"] = df_chords["start"].astype(float).round(3)
+            if "end" in df_chords.columns:
+                df_chords["end"] = df_chords["end"].astype(float).round(3)
+            if "duration" not in df_chords.columns and "start" in df_chords.columns and "end" in df_chords.columns:
+                df_chords["duration"] = (df_chords["end"] - df_chords["start"]).round(3)
+            df_chords.to_csv(chords_csv, index=False)
+
+    # 4. Save aligned_chords if directly provided or recalculate
+    aligned_records = data.get("aligned_records")
+    if aligned_records and isinstance(aligned_records, list):
+        import pandas as pd
+        df_aligned = pd.DataFrame(aligned_records)
+        df_aligned.to_csv(aligned_csv, index=False)
+    elif chords_csv.exists() and beats_csv.exists():
+        from pipeline import align_chords_to_beats, save_aligned_chords
+        res = align_chords_to_beats(chords_csv, beats_csv)
+        save_aligned_chords(res, aligned_csv)
+
+    return {
+        "success": True,
+        "bpm": data.get("bpm"),
+        "message": "Successfully saved updated chords, beats, and measures to disk."
+    }
+
+
+@app.post("/api/edit/reset")
+def reset_edits():
+    """Reset chords and beats back to the original AI generated versions."""
+    chords_csv = DATA_DIR / "chords.csv"
+    beats_csv = DATA_DIR / "beats.csv"
+    aligned_csv = DATA_DIR / "aligned_chords.csv"
+
+    chords_backup = DATA_DIR / "chords_backup.csv"
+    beats_backup = DATA_DIR / "beats_backup.csv"
+
+    import shutil
+    if chords_backup.exists():
+        shutil.copy2(chords_backup, chords_csv)
+    if beats_backup.exists():
+        shutil.copy2(beats_backup, beats_csv)
+
+    if chords_csv.exists() and beats_csv.exists():
+        from pipeline import align_chords_to_beats, save_aligned_chords
+        res = align_chords_to_beats(chords_csv, beats_csv)
+        save_aligned_chords(res, aligned_csv)
+
+    return {
+        "success": True,
+        "message": "Successfully reset chords and beats to original AI model outputs."
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 def read_root():
     """Serve main HTML dashboard."""
