@@ -1820,3 +1820,256 @@ INFO:     127.0.0.1:35946 - "GET /api/beats HTTP/1.1" 200 OK
 INFO:     127.0.0.1:47408 - "GET /api/stems HTTP/1.1" 200 OK
 INFO:     127.0.0.1:47408 - "GET /favicon.ico HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:47422 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52668 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52668 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52678 - "GET /static/js/main.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:52668 - "GET /static/js/music.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:52678 - "GET /static/js/piano.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:52686 - "GET /static/js/timeline.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:52668 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52686 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52668 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52678 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52678 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52686 - "GET /data/music.mp3?t=1787335676 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:52678 - "GET /data/music.mp3?t=1787335676 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:52668 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52702 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52702 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52702 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52702 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52702 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52702 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52702 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52702 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53676 - "GET /data/music.mp3?t=1787335676 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:52702 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53688 - "POST /api/edit/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53688 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53688 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53688 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36566 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58830 - "GET /data/music.mp3?t=1787335676 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:58844 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45102 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45102 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45102 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58844 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45118 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45118 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:45134 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45136 - "POST /api/edit/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45136 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45136 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45136 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45152 - "POST /api/edit/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45152 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45152 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45152 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45152 - "POST /api/edit/reset HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45152 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45152 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45152 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34528 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34528 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34528 - "GET /static/js/timeline.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:34528 - "GET /static/js/editor.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:34528 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34528 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34554 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34528 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34542 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44086 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44086 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44100 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44086 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44100 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44086 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44100 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44100 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44086 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44100 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44086 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44100 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44086 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44106 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44100 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44100 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:44086 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44116 - "POST /api/edit/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44116 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44116 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44116 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44116 - "POST /api/edit/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44116 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44116 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44116 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56312 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56312 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56312 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56312 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56312 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56312 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56312 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56330 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56312 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42230 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42242 - "GET /data/music.mp3?t=1787335676 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:42230 - "GET /data/music.mp3?t=1787335676 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:42488 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42488 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42498 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42498 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42488 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42506 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42498 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42488 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42506 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42498 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42488 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42506 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42488 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42498 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42506 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42506 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42498 - "GET /data/music.mp3?t=1787335676 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:42488 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54142 - "POST /api/edit/reset HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54142 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54142 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54142 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42550 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42550 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42560 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42560 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42550 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42560 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42550 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42560 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42550 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42560 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42550 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42560 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42550 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42562 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42560 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42560 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42550 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42578 - "GET /data/music.mp3?t=1787335676 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:42592 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42592 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42588 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42588 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42592 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42592 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42588 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42588 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42592 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42592 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42588 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42588 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42592 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42588 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42592 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52334 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52348 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52348 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+Selected model is a bag of 1 models. You will see that many progress bars per track.
+Separated tracks will be stored in /home/cglab/project/test/Music_Chord/data/htdemucs
+Separating track /home/cglab/project/test/Music_Chord/data/music.mp3
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+  0%|                                                                                 | 0.0/274.95 [00:00<?, ?seconds/s]  2%|█▌                                                                      | 5.85/274.95 [00:00<00:09, 28.00seconds/s]  9%|██████▏                                                                 | 23.4/274.95 [00:00<00:03, 78.21seconds/s]INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+ 15%|████████▍                                                | 40.949999999999996/274.95 [00:00<00:02, 100.90seconds/s] 21%|███████████████                                                        | 58.5/274.95 [00:00<00:01, 113.35seconds/s] 28%|███████████████████▎                                                  | 76.05/274.95 [00:00<00:01, 121.24seconds/s] 34%|████████████████████████▏                                              | 93.6/274.95 [00:00<00:01, 126.21seconds/s] 40%|███████████████████████                                  | 111.14999999999999/274.95 [00:00<00:01, 129.50seconds/s] 47%|████████████████████████████████▊                                     | 128.7/274.95 [00:01<00:01, 131.69seconds/s] 53%|████████████████████████████████████▋                                | 146.25/274.95 [00:01<00:00, 133.16seconds/s]INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+ 60%|█████████████████████████████████▉                       | 163.79999999999998/274.95 [00:01<00:00, 133.91seconds/s] 66%|█████████████████████████████████████████████▌                       | 181.35/274.95 [00:01<00:00, 134.73seconds/s] 72%|█████████████████████████████████████████▏               | 198.89999999999998/274.95 [00:01<00:00, 135.26seconds/s] 79%|██████████████████████████████████████████████████████▎              | 216.45/274.95 [00:01<00:00, 135.64seconds/s] 85%|███████████████████████████████████████████████████████████▌          | 234.0/274.95 [00:01<00:00, 135.78seconds/s] 91%|████████████████████████████████████████████████████▏    | 251.54999999999998/274.95 [00:02<00:00, 135.96seconds/s]INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+ 98%|███████████████████████████████████████████████████████▊ | 269.09999999999997/274.95 [00:02<00:00, 136.15seconds/s]100%|█████████████████████████████████████████████████████████████████████| 274.95/274.95 [00:02<00:00, 125.79seconds/s]
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+Fetching 11 files:   0%|          | 0/11 [00:00<?, ?it/s]Fetching 11 files: 100%|██████████| 11/11 [00:00<00:00, 4366.59it/s]
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+/home/cglab/miniconda3/envs/seperate/lib/python3.11/site-packages/librosa/core/spectrum.py:266: UserWarning: n_fft=512 is too large for input signal of length=327
+  warnings.warn(
+/home/cglab/miniconda3/envs/seperate/lib/python3.11/site-packages/librosa/core/spectrum.py:266: UserWarning: n_fft=512 is too large for input signal of length=164
+  warnings.warn(
+/home/cglab/miniconda3/envs/seperate/lib/python3.11/site-packages/librosa/core/spectrum.py:266: UserWarning: n_fft=512 is too large for input signal of length=82
+  warnings.warn(
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/pipeline/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52346 - "GET /data/music.mp3?t=1787344671 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:52342 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52342 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39670 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39670 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39670 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39674 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39674 - "GET /data/music.mp3?t=1787344671 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:39686 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /data/music.mp3?t=1787344671 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:39696 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39696 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39698 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39698 - "GET /static/js/constants.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39696 - "GET /static/js/music.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39698 - "GET /static/js/piano.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39696 - "GET /static/js/guitar.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39698 - "GET /static/js/timeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39696 - "GET /static/js/upload.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39698 - "GET /static/js/chord-library.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39696 - "GET /static/js/audio-synth.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39698 - "GET /static/js/editor.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39696 - "GET /api/chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39698 - "GET /api/stems HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39696 - "GET /api/beats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39696 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:45164 - "GET /data/music.mp3?t=1787344671 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:39698 - "GET /api/aligned-chords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35302 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:35316 - "GET /data/music.mp3?t=1787344671 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:35302 - "GET /data/music.mp3?t=1787344671 HTTP/1.1" 206 Partial Content
