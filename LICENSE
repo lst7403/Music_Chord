@@ -1,0 +1,19 @@
+## License
+
+The original code of this project is released under the MIT License.
+
+This project uses the following third-party open-source components:
+
+- Demucs — MIT License
+  https://github.com/facebookresearch/demucs
+
+- BTC (Bi-directional Transformer for Chord Recognition)
+  - `puar-playground/btc-chord` — MIT License
+  https://huggingface.co/puar-playground/btc-chord
+  - Original BTC implementation: jayg996/BTC-ISMIR19
+
+- Beat This — MIT License
+  https://github.com/CPJKU/beat_this
+
+The licenses and copyright notices of third-party components remain
+applicable to those respective components.
