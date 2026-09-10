@@ -83,7 +83,7 @@ Then open **[http://localhost:8080](http://localhost:8080)** in your browser.
 
 ```text
 seperate/
-├── data/                             # Model generated data
+├── data/                             # Model generated data and your own music.mp3
 ├── static/
 │   ├── index.html                    # Frontend user interface
 │   ├── style.css                     # Modern dark glassmorphism theme
