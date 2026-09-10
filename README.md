@@ -37,26 +37,26 @@ pip install demucs beat-this
 pip install ipykernel numpy soundfile librosa transformers huggingface_hub scipy pandas tqdm fastapi uvicorn python-multipart
 ```
 
-> **Note**: `beat-this` is the state-of-the-art transformer model used for automatic beat and downbeat tracking in [`beat.ipynb`](./beat.ipynb). You can install it directly via `pip install beat-this`.
+> **Note**: `beat-this` is the state-of-the-art transformer model used for automatic beat and downbeat tracking in [`beat.ipynb`](./notebooks/beat.ipynb). You can install it directly via `pip install beat-this`.
 
 ---
 
 ## 🚀 Step-by-Step Processing Pipeline (Notebooks)
 
-All notebooks import from [`pipeline.py`](./pipeline.py) for unified processing:
+All notebooks import from modular components in [`module/`](./module) (or [`pipeline.py`](./pipeline.py)):
 
-1. **[`separate.ipynb`](./separate.ipynb)**: Runs Demucs source separation on `data/music.mp3` &rarr; outputs isolated stems (`vocals.wav`, `drums.wav`, `bass.wav`, `other.wav`).
-2. **[`combine.ipynb`](./combine.ipynb)**: Merges stems &rarr; generates `data/bass_other.wav` (harmonic accompaniment) and `data/instrumental.wav` (backing track).
-3. **[`chord_recognition.ipynb`](./chord_recognition.ipynb)**: Runs BTC Transformer on GPU &rarr; exports timeline to `data/chords.csv`.
-4. **[`beat.ipynb`](./beat.ipynb)**: Runs BeatThis Transformer on GPU &rarr; extracts beat and downbeat timestamps and exports to `data/beats.csv`.
-5. **[`align.ipynb`](./align.ipynb)**: Aligns chord intervals to discrete rhythm beats and measures &rarr; exports quantized lead sheet to `data/aligned_chords.csv`.
+1. **[`separate.ipynb`](./notebooks/separate.ipynb)**: Runs Demucs source separation on `data/music.mp3` &rarr; outputs isolated stems (`vocals.wav`, `drums.wav`, `bass.wav`, `other.wav`).
+2. **[`combine.ipynb`](./notebooks/combine.ipynb)**: Merges stems &rarr; generates `data/bass_other.wav` (harmonic accompaniment) and `data/instrumental.wav` (backing track).
+3. **[`chord_recognition.ipynb`](./notebooks/chord_recognition.ipynb)**: Runs BTC Transformer on GPU &rarr; exports timeline to `data/chords.csv`.
+4. **[`beat.ipynb`](./notebooks/beat.ipynb)**: Runs BeatThis Transformer on GPU &rarr; extracts beat and downbeat timestamps and exports to `data/beats.csv`.
+5. **[`align.ipynb`](./notebooks/align.ipynb)**: Aligns chord intervals to discrete rhythm beats and measures &rarr; exports quantized lead sheet to `data/aligned_chords.csv`.
 
 ---
 
 ## 🌐 How to Run the Chord Web App
 
 ### Option A: Using the Notebook Controller (Recommended)
-Open [`server.ipynb`](./server.ipynb):
+Open [`server.ipynb`](./notebooks/server.ipynb):
 - Run **Cell 2 (`start_server()`)** to launch the server asynchronously in the background.
 - Run **Cell 3 (`check_status()`)** to verify health and available stems.
 - Run **Cell 4 (`stop_server()`)** to cleanly stop the server and free port 8080.
@@ -111,13 +111,20 @@ seperate/
 │       ├── piano.js                  # Virtual Piano keyboard builder
 │       ├── timeline.js               # Timeline overview & progression sheet
 │       └── main.js                   # Application controller & state sync
-├── pipeline.py                       # Unified audio, chord & beat AI processing engine
+├── module/                           # Decoupled AI & audio processing modules
+│   ├── __init__.py                   # Module package exports
+│   ├── source_separation.py          # Demucs stem separation, FFmpeg audio conversion & stem mixing
+│   ├── chord_recognition.py          # BTC Transformer chord model loading & inference
+│   └── beat_tracking.py              # BeatThis beat & downbeat tracking & beat-chord alignment
+├── notebooks/                        # Interactive Jupyter notebooks
+│   ├── server.ipynb                  # Server controller notebook (start / check / stop)
+│   ├── separate.ipynb                # Step 1: Demucs source separation notebook
+│   ├── combine.ipynb                 # Step 2: Audio stem combination notebook
+│   ├── chord_recognition.ipynb       # Step 3: BTC chord recognition notebook
+│   ├── beat.ipynb                    # Step 4: BeatThis beat & downbeat tracking notebook
+│   └── align.ipynb                   # Step 5: Beat-synchronous chord alignment notebook
+├── pipeline.py                       # Unified audio, chord & beat AI processing engine (orchestrator)
 ├── app.py                            # FastAPI backend server
-├── server.ipynb                      # Server controller notebook (start / check / stop)
-├── separate.ipynb                    # Step 1: Demucs source separation notebook
-├── combine.ipynb                     # Step 2: Audio stem combination notebook
-├── chord_recognition.ipynb           # Step 3: BTC chord recognition notebook
-├── beat.ipynb                        # Step 4: BeatThis beat & downbeat tracking notebook
 ├── README.md                         # Installation & usage documentation
 └── .gitignore                        # Ignores data audio while preserving data/ folder
 ```
