@@ -6,7 +6,6 @@ This repository contains a full pipeline and interactive web application for:
 3. **Musical Chord Recognition** using the **BTC (Bi-directional Transformer for Chord Recognition)** model (`puar-playground/btc-chord`) on harmonic accompaniment.
 4. **Beat & Downbeat Tracking** (`beat.ipynb`) using the **`beat_this`** state-of-the-art transformer model to detect beat timestamps, measure downbeats, and estimate song tempo (BPM).
 5. **Interactive FastAPI Web App** (`app.py`) for synchronized real-time chord visualization, interactive piano voicing, dynamic guitar chord fretboard diagrams, multi-stem audio switching, pitch transposition, and scrubbable timeline.
-6. **Notebook Server Control** (`server.ipynb`) to start, monitor, and stop the web server directly inside a Jupyter notebook.
 
 ---
 
@@ -37,8 +36,6 @@ pip install demucs beat-this
 pip install ipykernel numpy soundfile librosa transformers huggingface_hub scipy pandas tqdm fastapi uvicorn python-multipart
 ```
 
-> **Note**: `beat-this` is the state-of-the-art transformer model used for automatic beat and downbeat tracking in [`beat.ipynb`](./notebooks/beat.ipynb). You can install it directly via `pip install beat-this`.
-
 ---
 
 ## 🚀 Step-by-Step Processing Pipeline (Notebooks)
@@ -55,15 +52,6 @@ All notebooks import from modular components in [`module/`](./module) (or [`pipe
 
 ## 🌐 How to Run the Chord Web App
 
-### Option A: Using the Notebook Controller (Recommended)
-Open [`server.ipynb`](./notebooks/server.ipynb):
-- Run **Cell 2 (`start_server()`)** to launch the server asynchronously in the background.
-- Run **Cell 3 (`check_status()`)** to verify health and available stems.
-- Run **Cell 4 (`stop_server()`)** to cleanly stop the server and free port 8080.
-
----
-
-### Option B: Using the Command Line
 ```bash
 python app.py
 ```
@@ -79,7 +67,12 @@ Then open **[http://localhost:8080](http://localhost:8080)** in your browser.
   - 🎸 **Guitar Mode**: Dynamic SVG Guitar Chord Boxes showing 6 strings, frets, finger positions, and barres.
   - 🎹 **Piano Mode**: Interactive 2-octave keyboard lighting up chord notes (root, 3rd, 5th, 7th).
   - 🎼 **Both Mode**: View both instruments simultaneously.
-- **Audio Stem Switcher**: Toggle between Full Mix (`music.mp3`), Instrumental Backing Track (`instrumental.wav`), Accompaniment (`bass_other.wav`), Vocals, Drums, Bass, and Other.
+- **Comprehensive Chord Database**: Built-in library supporting 14 chord types across all 12 root pitch classes (Major, Minor, 7th, Maj7, Min7, Diminished, Augmented, Sus2, Sus4, etc.) with dynamic guitar fret fingerings, barres, and piano interval voicings.
+- **Interactive Chord & Beat Editor (Edit Mode)**:
+  - 📝 **Chord Picker & Harmony Edit**: Click any beat or progression card to modify chords using the interactive visual chord picker.
+  - 🔀 **Drag-and-Drop & Gap Insertion**: Reorder beats and measures, insert beats at timeline gaps (`+`), or delete beats.
+  - ⏱️ **BPM & Timing Adjustment**: Fine-tune tempo, downbeat anchors, and measure grouping with full Undo/Redo (`Ctrl+Z` / `Ctrl+Y`).
+  - 💾 **Save & Reset**: Export user corrections back to CSV files (`/api/edit/save`) or revert anytime to original AI predictions.
 - **Live Transposition**: Transpose the whole song key up/down by semitones in real-time (`-` / `+` / `Reset`).
 - **Scrubbable Color Timeline**: Visual chord blocks positioned along the timeline; click anywhere to jump immediately to that point in the track.
 - **Auto-Scrolling Progression Sheet**: Grid of chord cards with search/filter capabilities.
@@ -90,16 +83,7 @@ Then open **[http://localhost:8080](http://localhost:8080)** in your browser.
 
 ```text
 seperate/
-├── data/
-│   ├── music.mp3                     # Original input audio file
-│   ├── vocals.wav                    # Isolated vocals stem
-│   ├── drums.wav                     # Isolated drums stem
-│   ├── bass.wav                      # Isolated bass line stem
-│   ├── other.wav                     # Remaining instruments stem
-│   ├── bass_other.wav                # Combined harmonic accompaniment (Bass + Other)
-│   ├── instrumental.wav              # Combined instrumental backing track (Drums + Bass + Other)
-│   ├── chords.csv                    # Chord timeline (CSV format)
-│   └── beats.csv                     # Beat and downbeat timestamps (CSV format)
+├── data/                             # Model generated data
 ├── static/
 │   ├── index.html                    # Frontend user interface
 │   ├── style.css                     # Modern dark glassmorphism theme
@@ -117,14 +101,11 @@ seperate/
 │   ├── chord_recognition.py          # BTC Transformer chord model loading & inference
 │   └── beat_tracking.py              # BeatThis beat & downbeat tracking & beat-chord alignment
 ├── notebooks/                        # Interactive Jupyter notebooks
-│   ├── server.ipynb                  # Server controller notebook (start / check / stop)
 │   ├── separate.ipynb                # Step 1: Demucs source separation notebook
 │   ├── combine.ipynb                 # Step 2: Audio stem combination notebook
 │   ├── chord_recognition.ipynb       # Step 3: BTC chord recognition notebook
 │   ├── beat.ipynb                    # Step 4: BeatThis beat & downbeat tracking notebook
 │   └── align.ipynb                   # Step 5: Beat-synchronous chord alignment notebook
-├── pipeline.py                       # Unified audio, chord & beat AI processing engine (orchestrator)
+├── pipeline.py                       # Unified audio, chord & beat AI processing engine 
 ├── app.py                            # FastAPI backend server
-├── README.md                         # Installation & usage documentation
-└── .gitignore                        # Ignores data audio while preserving data/ folder
 ```
