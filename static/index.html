@@ -16,63 +16,77 @@
 <body>
   <div class="app-container">
     <!-- TOP NAVIGATION BAR -->
+    <!-- TOP NAVIGATION & CONTROL BAR -->
     <header class="app-header">
-      <div class="brand">
-        <div class="brand-icon">🎸</div>
-        <div class="brand-text">
-          <h1>ChordVision</h1>
-          <span class="badge-tag">AI Harmony & Instrument Engine</span>
+      <!-- TIER 1: BRAND, PRIMARY NAVIGATION, AND UPLOAD CTA -->
+      <div class="header-top-row">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">🎸</div>
+          <div class="brand-text">
+            <h1>ChordVision</h1>
+            <span class="badge-tag">AI Harmony &amp; Instrument Engine</span>
+          </div>
+        </div>
+
+        <!-- MAIN APP VIEW NAVIGATION TABS -->
+        <nav class="nav-view-tabs" role="tablist" aria-label="Main Application Views">
+          <button id="nav-tab-visualizer" class="nav-tab-btn active" role="tab" aria-selected="true" title="Song Audio Visualizer & Realtime Chord Detection">
+            <span class="tab-icon">🎼</span>
+            <span>Song Visualizer</span>
+          </button>
+          <button id="nav-tab-editor" class="nav-tab-btn" role="tab" aria-selected="false" title="Interactive Chord & Beat Editor (Drag, Gap Insert, Delete & Harmony)">
+            <span class="tab-icon">📝</span>
+            <span>Edit Mode</span>
+            <span class="tab-badge tab-badge-amber">Interactive</span>
+          </button>
+          <button id="nav-tab-library" class="nav-tab-btn" role="tab" aria-selected="false" title="Complete Guitar Chord & Voicings Encyclopedia (CHORD_ALTERNATIVES_DB)">
+            <span class="tab-icon">🎸</span>
+            <span>Guitar Chord Library</span>
+            <span class="tab-badge tab-badge-blue">340+ Voicings</span>
+          </button>
+        </nav>
+
+        <!-- Primary CTA: Upload Song Button -->
+        <div class="header-top-actions">
+          <button id="btn-open-upload" class="btn btn-upload-hero" title="Upload any song for AI stem separation and chord detection">
+            <span class="upload-icon">✨</span>
+            <span>Upload Song</span>
+          </button>
         </div>
       </div>
 
-      <!-- MAIN APP VIEW NAVIGATION TABS -->
-      <nav class="nav-view-tabs">
-        <button id="nav-tab-visualizer" class="nav-tab-btn active" title="Song Audio Visualizer & Realtime Chord Detection">
-          <span class="tab-icon">🎼</span>
-          <span>Song Visualizer</span>
-        </button>
-        <button id="nav-tab-editor" class="nav-tab-btn" title="Interactive Chord & Beat Editor (Drag, Gap Insert, Delete & Harmony)">
-          <span class="tab-icon">📝</span>
-          <span>Edit Mode</span>
-          <span class="tab-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">Interactive</span>
-        </button>
-        <button id="nav-tab-library" class="nav-tab-btn" title="Complete Guitar Chord & Voicings Encyclopedia (CHORD_ALTERNATIVES_DB)">
-          <span class="tab-icon">🎸</span>
-          <span>Guitar Chord Library</span>
-          <span class="tab-badge">340+ Voicings</span>
-        </button>
-      </nav>
-
-      <div class="header-controls">
-        <!-- Upload Song Action Button -->
-        <button id="btn-open-upload" class="btn btn-upload-hero" title="Upload any song for AI stem separation and chord detection">
-          <span class="upload-icon">✨</span>
-          <span>Upload Song</span>
-        </button>
-
+      <!-- TIER 2: UNIFIED TRANSPORT & AUDIO SETTINGS RACK -->
+      <div class="header-toolbar" role="toolbar" aria-label="Playback and Instrument Controls">
         <!-- Stem Selector Dropdown -->
-        <div class="control-group" id="stem-select-group">
+        <div class="toolbar-group" id="stem-select-group">
+          <span class="toolbar-icon" aria-hidden="true">🎧</span>
           <label for="stem-select">Audio Track:</label>
-          <select id="stem-select" class="custom-select">
+          <select id="stem-select" class="custom-select custom-select-sm" aria-label="Audio Track Stem Selection">
             <option value="loading">Loading audio tracks...</option>
           </select>
         </div>
 
+        <div class="toolbar-divider" aria-hidden="true"></div>
+
         <!-- Transpose Controller -->
-        <div class="control-group transpose-group" id="transpose-group">
+        <div class="toolbar-group transpose-group" id="transpose-group">
+          <span class="toolbar-icon" aria-hidden="true">🎹</span>
           <label>Transpose:</label>
-          <div class="btn-group">
-            <button id="transpose-down" class="btn btn-sm btn-icon" title="Transpose Down 1 Semitone">-</button>
-            <span id="transpose-val" class="tag-val">0</span>
-            <button id="transpose-up" class="btn btn-sm btn-icon" title="Transpose Up 1 Semitone">+</button>
-            <button id="transpose-reset" class="btn btn-sm btn-ghost" title="Reset Key">Reset</button>
+          <div class="btn-group transpose-btn-group" role="group" aria-label="Transpose controls">
+            <button id="transpose-down" class="btn btn-sm btn-icon" title="Transpose Down 1 Semitone" aria-label="Transpose Down 1 Semitone">-</button>
+            <span id="transpose-val" class="tag-val" aria-live="polite">0</span>
+            <button id="transpose-up" class="btn btn-sm btn-icon" title="Transpose Up 1 Semitone" aria-label="Transpose Up 1 Semitone">+</button>
+            <button id="transpose-reset" class="btn btn-sm btn-ghost" title="Reset Key to Original" aria-label="Reset Key">Reset</button>
           </div>
         </div>
 
+        <div class="toolbar-divider" aria-hidden="true"></div>
+
         <!-- Capo Controller (Synchronized across Visualizer & Edit Mode) -->
-        <div class="control-group capo-group" id="header-capo-group">
+        <div class="toolbar-group capo-group" id="header-capo-group">
+          <span class="toolbar-icon" aria-hidden="true">🎸</span>
           <label for="capo-select">Capo:</label>
-          <select id="capo-select" class="custom-select custom-select-sm capo-select">
+          <select id="capo-select" class="custom-select custom-select-sm capo-select" aria-label="Capo Fret Selection">
             <option value="0">No Capo</option>
             <option value="1">Capo 1</option>
             <option value="2">Capo 2</option>
@@ -87,10 +101,13 @@
           </button>
         </div>
 
+        <div class="toolbar-divider" aria-hidden="true"></div>
+
         <!-- Speed Selector -->
-        <div class="control-group" id="speed-select-group">
+        <div class="toolbar-group" id="speed-select-group">
+          <span class="toolbar-icon" aria-hidden="true">⏱️</span>
           <label for="speed-select">Speed:</label>
-          <select id="speed-select" class="custom-select custom-select-sm">
+          <select id="speed-select" class="custom-select custom-select-sm" aria-label="Playback Speed">
             <option value="0.5">0.5x</option>
             <option value="0.75">0.75x</option>
             <option value="1.0" selected>1.0x</option>
@@ -168,8 +185,8 @@
             </div>
 
             <div class="sheet-toggles">
-              <label class="toggle-label">
-                <input type="checkbox" id="auto-scroll-toggle" checked>
+              <label class="toggle-label" for="auto-scroll-toggle">
+                <input type="checkbox" id="auto-scroll-toggle" aria-label="Auto-Shift Both Rows" checked>
                 <span class="toggle-custom"></span>
                 Auto-Shift Both Rows
               </label>
@@ -344,8 +361,8 @@
               <h2>Interactive Timeline (Edit Chords & Beats)</h2>
             </div>
             <div class="sheet-toggles">
-              <label class="toggle-label">
-                <input type="checkbox" id="editor-auto-scroll-toggle" checked>
+              <label class="toggle-label" for="editor-auto-scroll-toggle">
+                <input type="checkbox" id="editor-auto-scroll-toggle" aria-label="Auto-Shift Playhead" checked>
                 <span class="toggle-custom"></span>
                 Auto-Shift Playhead
               </label>
@@ -601,89 +618,23 @@
 
           <!-- SOURCE TABS -->
           <div class="modal-tabs" id="modal-source-tabs">
-            <button type="button" class="modal-tab-btn active" id="tab-btn-file">
-              <span class="tab-icon">📁</span>
-              <span>Local Audio File</span>
-            </button>
-            <button type="button" class="modal-tab-btn" id="tab-btn-youtube">
+            <button type="button" class="modal-tab-btn active" id="tab-btn-youtube" aria-label="YouTube Link">
               <div class="yt-live-pill-mini">
                 <span class="yt-dot"></span>
                 <span class="yt-brand-text">YouTube</span>
               </div>
-              <span>Link &amp; Convert</span>
+              <span>Link</span>
+            </button>
+            <button type="button" class="modal-tab-btn" id="tab-btn-file">
+              <span class="tab-icon">📁</span>
+              <span>Local Audio File</span>
             </button>
           </div>
 
           <!-- 1. FILE & YOUTUBE SELECTION FORM SECTION -->
           <div id="upload-form-section" class="upload-form-section">
-            <!-- TAB PANEL A: FILE UPLOAD -->
-            <div id="panel-file-upload" class="tab-panel active">
-              <div id="upload-dropzone" class="upload-dropzone">
-                <div class="dropzone-icon">🚀</div>
-                <h4>Drag &amp; drop song here</h4>
-                <p class="dropzone-hint">Supports MP3, WAV, M4A, FLAC, OGG, AAC (up to 100MB)</p>
-                <button type="button" class="btn btn-sm btn-select-file">Browse Audio File</button>
-                <input type="file" id="music-file-input" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" aria-label="Upload audio file" style="display: none;">
-              </div>
-
-              <div id="file-details" class="file-details-card" style="display: none;">
-                <div class="file-info-group">
-                  <span class="file-type-badge">AUDIO</span>
-                  <div class="file-text-info">
-                    <span id="selected-file-name" class="file-name">song.mp3</span>
-                    <span id="selected-file-size" class="file-size">0.00 MB</span>
-                  </div>
-                </div>
-                <button id="btn-remove-file" class="btn-remove-file" title="Remove file">✕</button>
-              </div>
-
-              <!-- OR DIVIDER -->
-              <div class="upload-or-divider">
-                <span>OR IMPORT FROM YOUTUBE</span>
-              </div>
-
-              <!-- SLEEK YOUTUBE QUICK BAR INSIDE FILE PANEL -->
-              <div class="panel-yt-unified-card" id="panel-yt-unified-card">
-                <div class="yt-unified-header">
-                  <div class="yt-live-pill">
-                    <span class="yt-dot"></span>
-                    <span class="yt-brand-text">YouTube</span>
-                  </div>
-                  <span class="yt-unified-title">Paste YouTube link to extract MP3 &amp; detect chords:</span>
-                </div>
-                <div class="yt-unified-input-row">
-                  <div class="yt-unified-input-wrap">
-                    <span class="yt-quick-icon">🔗</span>
-                    <input type="url" id="yt-frontend-input" class="yt-frontend-input" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." autocomplete="off" spellcheck="false" aria-label="YouTube video URL for audio separation">
-                    <button type="button" id="btn-yt-frontend-clear" class="btn-quick-clear" style="display: none;" title="Clear">✕</button>
-                  </div>
-                  <button type="button" id="btn-yt-frontend-submit" class="btn btn-yt-convert" disabled>
-                    <span class="btn-icon">⚡</span>
-                    <span>Convert &amp; Run</span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="upload-feature-pills">
-                <div class="feature-pill"><span>🎛️</span> Demucs 4-Stem Separation</div>
-                <div class="feature-pill"><span>🎹</span> Accompaniment Mixing</div>
-                <div class="feature-pill"><span>🎼</span> BTC Transformer Chords</div>
-              </div>
-
-              <div class="modal-actions">
-                <button id="btn-start-upload" class="btn btn-hero-action" disabled>
-                  <span>⚡ Start AI Processing</span>
-                </button>
-              </div>
-
-              <div class="modal-footer-switch">
-                <span>Want dedicated YouTube controls?</span>
-                <button type="button" class="btn-switch-link" id="btn-switch-to-yt-tab">Open YouTube Tab &rarr;</button>
-              </div>
-            </div>
-
-            <!-- TAB PANEL B: YOUTUBE LINK -->
-            <div id="panel-youtube-upload" class="tab-panel" style="display: none;">
+            <!-- TAB PANEL A: YOUTUBE LINK -->
+            <div id="panel-youtube-upload" class="tab-panel active">
               <div class="youtube-input-card">
                 <div class="youtube-header">
                   <div class="yt-live-pill">
@@ -724,6 +675,45 @@
               <div class="modal-footer-switch">
                 <span>Want to upload a local audio file instead?</span>
                 <button type="button" class="btn-switch-link" id="btn-switch-to-file-tab">Switch to Local File &rarr;</button>
+              </div>
+            </div>
+
+            <!-- TAB PANEL B: FILE UPLOAD -->
+            <div id="panel-file-upload" class="tab-panel" style="display: none;">
+              <div id="upload-dropzone" class="upload-dropzone">
+                <div class="dropzone-icon">🚀</div>
+                <h4>Drag &amp; drop song here</h4>
+                <p class="dropzone-hint">Supports MP3, WAV, M4A, FLAC, OGG, AAC (up to 100MB)</p>
+                <button type="button" class="btn btn-sm btn-select-file">Browse Audio File</button>
+                <input type="file" id="music-file-input" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" aria-label="Upload audio file" style="display: none;">
+              </div>
+
+              <div id="file-details" class="file-details-card" style="display: none;">
+                <div class="file-info-group">
+                  <span class="file-type-badge">AUDIO</span>
+                  <div class="file-text-info">
+                    <span id="selected-file-name" class="file-name">song.mp3</span>
+                    <span id="selected-file-size" class="file-size">0.00 MB</span>
+                  </div>
+                </div>
+                <button id="btn-remove-file" class="btn-remove-file" title="Remove file">✕</button>
+              </div>
+
+              <div class="upload-feature-pills">
+                <div class="feature-pill"><span>🎛️</span> Demucs 4-Stem Separation</div>
+                <div class="feature-pill"><span>🎹</span> Accompaniment Mixing</div>
+                <div class="feature-pill"><span>🎼</span> BTC Transformer Chords</div>
+              </div>
+
+              <div class="modal-actions">
+                <button id="btn-start-upload" class="btn btn-hero-action" disabled>
+                  <span>⚡ Start AI Processing</span>
+                </button>
+              </div>
+
+              <div class="modal-footer-switch">
+                <span>Want to import from a YouTube link instead?</span>
+                <button type="button" class="btn-switch-link" id="btn-switch-to-yt-tab">Switch to YouTube Link &rarr;</button>
               </div>
             </div>
           </div>
@@ -801,6 +791,13 @@
                 </div>
                 <span class="step-badge">Pending</span>
               </div>
+            </div>
+
+            <!-- CANCEL / RESET ACTION -->
+            <div class="progress-cancel-row">
+              <button type="button" id="btn-cancel-pipeline" class="btn btn-sm btn-ghost btn-cancel-progress" title="Cancel current processing and return to upload form">
+                <span>✕ Cancel &amp; Reset</span>
+              </button>
             </div>
           </div>
         </div>

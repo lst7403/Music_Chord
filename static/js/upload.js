@@ -54,12 +54,15 @@ export function initUploadModal({ onProcessingComplete }) {
   let selectedFile = null;
   let pollTimer = null;
   let isProcessing = false;
-  let activeTab = 'file'; // 'file' | 'youtube'
+  let activeTab = 'youtube'; // 'youtube' | 'file'
 
   // Open & Close handlers
   function openModal() {
     modalOverlay.classList.add('active');
     modalOverlay.setAttribute('aria-hidden', 'false');
+    if (!isProcessing) {
+      switchTab('youtube');
+    }
     checkInitialStatus();
   }
 
@@ -327,6 +330,7 @@ export function initUploadModal({ onProcessingComplete }) {
     resetStepList();
     if (pollTimer) clearInterval(pollTimer);
     isProcessing = false;
+    switchTab('youtube');
   }
 
   function resetStepList() {
@@ -360,6 +364,20 @@ export function initUploadModal({ onProcessingComplete }) {
         console.warn(e);
       }
       resetModalForm();
+    });
+  }
+
+  const btnCancelPipeline = document.getElementById('btn-cancel-pipeline');
+  if (btnCancelPipeline) {
+    btnCancelPipeline.addEventListener('click', async () => {
+      if (confirm('Cancel and reset current audio processing?')) {
+        try {
+          await fetch('/api/pipeline/reset', { method: 'POST' });
+        } catch (e) {
+          console.warn(e);
+        }
+        resetModalForm();
+      }
     });
   }
 
@@ -480,19 +498,39 @@ export function initUploadModal({ onProcessingComplete }) {
     }, 400);
   }
 
-  async function checkInitialStatus() {
+  async function checkInitialStatus(autoOpen = false) {
     try {
       const res = await fetch('/api/pipeline/status');
       if (!res.ok) return;
       const data = await res.json();
       if (data.status === 'running') {
+        // Guard: If pipeline has been running for > 15 minutes, it is likely an orphaned/stuck task
+        if (data.elapsed_seconds && data.elapsed_seconds > 900) {
+          console.warn('Pipeline appears orphaned (running > 15m). Resetting state.');
+          await fetch('/api/pipeline/reset', { method: 'POST' });
+          resetModalForm();
+          return;
+        }
+
         isProcessing = true;
         uploadFormSection.style.display = 'none';
         progressSection.style.display = 'block';
-        if (data.step === 'downloading' && stepItems.downloading) {
+
+        if ((data.step === 'downloading' || activeTab === 'youtube') && stepItems.downloading) {
           stepItems.downloading.style.display = 'flex';
         }
+
+        if (autoOpen) {
+          modalOverlay.classList.add('active');
+          modalOverlay.setAttribute('aria-hidden', 'false');
+        }
+
         startPollingStatus();
+      } else {
+        isProcessing = false;
+        if (pollTimer) clearInterval(pollTimer);
+        uploadFormSection.style.display = 'block';
+        progressSection.style.display = 'none';
       }
     } catch (e) {
       console.warn(e);
@@ -501,6 +539,13 @@ export function initUploadModal({ onProcessingComplete }) {
 
   function handlePipelineStatus(data) {
     const { status, step, progress, message, error, elapsed_seconds } = data;
+
+    if (status === 'idle') {
+      if (pollTimer) clearInterval(pollTimer);
+      isProcessing = false;
+      resetModalForm();
+      return;
+    }
 
     updateProgressDisplay(progress, message, elapsed_seconds);
 
@@ -577,4 +622,7 @@ export function initUploadModal({ onProcessingComplete }) {
       }
     }
   }
+
+  // Initial check on page load to restore state or detect active background tasks
+  checkInitialStatus(false);
 }

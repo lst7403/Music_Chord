@@ -314,7 +314,7 @@ def get_stems():
     AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac", ".wma", ".aiff", ".opus"}
     for f in sorted(DATA_DIR.iterdir()):
         if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS and f.name.lower() not in seen_files:
-            if f.name.startswith("upload_temp_"):
+            if f.name.startswith("upload_temp_") or f.name.startswith("yt_dl_"):
                 continue
             seen_files.add(f.name.lower())
             size_mb = round(f.stat().st_size / (1024 * 1024), 2)
@@ -481,4 +481,10 @@ if __name__ == "__main__":
             port = 8081
 
     print(f"🚀 Launching ChordVision web server on http://localhost:{port}")
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True,
+        reload_excludes=["data/*", "data/**", "*.mp3", "*.wav", "*.csv", "*.tmp", "*.part"]
+    )

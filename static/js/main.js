@@ -184,7 +184,8 @@ function setAudioSource(stemIdentifier) {
   el.audio.onloadedmetadata = () => {
     el.audio.currentTime = prevTime;
     state.totalDuration = el.audio.duration;
-    el.timeTotal.textContent = formatTime(el.audio.duration);
+    if (el.timeTotal) el.timeTotal.textContent = formatTime(el.audio.duration);
+    updateScrubberProgress(prevTime);
     if (isPlaying) {
       el.audio.play().catch(e => console.warn(e));
     }
@@ -388,12 +389,29 @@ function stopPlaybackLoop() {
   }
 }
 
+function updateScrubberProgress(currentTime) {
+  const total = el.audio.duration || state.totalDuration || 0;
+  const pct = total > 0 ? Math.min(100, Math.max(0, (currentTime / total) * 100)) : 0;
+  if (el.audioScrubber) el.audioScrubber.value = pct;
+  if (el.scrubberFill) el.scrubberFill.style.width = `${pct}%`;
+  if (el.timeCurrent) el.timeCurrent.textContent = formatTime(currentTime);
+  if (el.timeTotal && !isNaN(total) && total > 0) el.timeTotal.textContent = formatTime(total);
+}
+
 function updateActiveChord(currentTime) {
+  // Always update audio scrubber and timers regardless of chords/beats
+  updateScrubberProgress(currentTime);
+
   // 1. Synchronize Beat Tracker HUD
   updateActiveBeat(currentTime);
 
   // 2. Synchronize Beat-Aligned Measure Tape
   updateActiveMeasureStream(currentTime);
+
+  // 4. Synchronize Interactive Editor if active
+  if (editorState.active) {
+    updateEditorPlayhead(currentTime);
+  }
 
   // 3. Synchronize Continuous Chord Progression Stream
   if (!state.activeChords.length) return;
@@ -415,19 +433,6 @@ function updateActiveChord(currentTime) {
     state.currentChordIndex = newIndex;
     onChordChanged(newIndex);
   }
-
-  // 4. Synchronize Interactive Editor if active
-  if (editorState.active) {
-    updateEditorPlayhead(currentTime);
-  }
-
-  // Update Scrubber Position
-  const total = el.audio.duration || state.totalDuration || 1;
-  const pct = Math.min(100, Math.max(0, (currentTime / total) * 100));
-  if (el.audioScrubber) el.audioScrubber.value = pct;
-  if (el.scrubberFill) el.scrubberFill.style.width = `${pct}%`;
-  if (el.timeCurrent) el.timeCurrent.textContent = formatTime(currentTime);
-  if (el.timeTotal && !isNaN(total)) el.timeTotal.textContent = formatTime(total);
 }
 
 function updateActiveMeasureStream(currentTime) {
@@ -605,6 +610,8 @@ function onChordChanged(index) {
   }
 
   if (index === -1 || !state.activeChords[index]) {
+    document.documentElement.style.setProperty('--active-root-color', '#6366f1');
+    document.documentElement.style.setProperty('--active-root-glow', 'rgba(99, 102, 241, 0.25)');
     if (el.heroChordName) el.heroChordName.textContent = '--';
     if (el.heroChordDesc) el.heroChordDesc.textContent = 'Audio Stopped / Paused';
     if (el.chordTiming) el.chordTiming.textContent = '0.0s – 0.0s';
@@ -619,6 +626,12 @@ function onChordChanged(index) {
   const effectiveGuitarChord = state.capoFret > 0 && soundingChord !== 'N'
     ? transposeChordName(soundingChord, -state.capoFret)
     : soundingChord;
+
+  // Synesthetic root color for dynamic ambient UI glow
+  const root = soundingChord === 'N' ? 'N' : normalizeRoot(soundingChord.split(':')[0]);
+  const rootColor = ROOT_COLORS[root] || '#6366f1';
+  document.documentElement.style.setProperty('--active-root-color', rootColor);
+  document.documentElement.style.setProperty('--active-root-glow', `${rootColor}44`);
 
   if (el.heroChordName) {
     el.heroChordName.textContent = formatChordName(effectiveGuitarChord);
@@ -830,7 +843,9 @@ function setupEventListeners() {
   if (el.audioScrubber) {
     el.audioScrubber.addEventListener('input', (e) => {
       const total = el.audio.duration || state.totalDuration || 1;
-      el.audio.currentTime = (parseFloat(e.target.value) / 100) * total;
+      const targetTime = (parseFloat(e.target.value) / 100) * total;
+      el.audio.currentTime = targetTime;
+      updateScrubberProgress(targetTime);
     });
   }
 

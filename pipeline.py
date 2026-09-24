@@ -15,11 +15,16 @@ Underlying domain implementations are modularized in `module/`:
 - `module.beat_tracking`
 """
 
+import os
+import sys
+import shutil
+import subprocess
 import threading
 import time
 import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional
+import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
@@ -88,6 +93,11 @@ def update_status(step: str, progress: int, message: str, status: str = "running
                 pipeline_state["elapsed_seconds"] = round(pipeline_state["completed_at"] - pipeline_state["started_at"], 1)
 
 
+# Cached AI models
+_cached_model = None
+_cached_beat_model = None
+
+
 def get_btc_model():
     global _cached_model
     if _cached_model is None:
@@ -146,6 +156,23 @@ def convert_to_mp3(input_file: Path, output_file: Path):
 def download_youtube_audio(url: str, output_file: Path, progress_callback=None) -> str:
     """Download audio from a YouTube URL and convert to high-quality MP3."""
     import yt_dlp
+    from urllib.parse import urlparse, parse_qs
+
+    # Clean YouTube URL: strip playlist and tracking parameters to prevent downloading entire playlists
+    clean_url = url.strip()
+    try:
+        parsed = urlparse(clean_url)
+        if "youtube.com" in parsed.netloc and "watch" in parsed.path:
+            qs = parse_qs(parsed.query)
+            v = qs.get("v")
+            if v:
+                clean_url = f"https://www.youtube.com/watch?v={v[0]}"
+        elif "youtu.be" in parsed.netloc:
+            video_id = parsed.path.strip("/")
+            if video_id:
+                clean_url = f"https://www.youtube.com/watch?v={video_id}"
+    except Exception:
+        clean_url = url.strip()
 
     ffmpeg_exe = get_ffmpeg_executable()
     output_file = Path(output_file)
@@ -163,9 +190,16 @@ def download_youtube_audio(url: str, output_file: Path, progress_callback=None) 
                 pct = int((downloaded / total) * 100)
                 progress_callback(pct)
 
+    is_pure_playlist = "playlist" in clean_url and "watch" not in clean_url
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': outtmpl,
+        'noplaylist': not is_pure_playlist,
+        'playlist_items': '1',
+        'socket_timeout': 30,
+        'retries': 3,
+        'geo_bypass': True,
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -177,26 +211,47 @@ def download_youtube_audio(url: str, output_file: Path, progress_callback=None) 
         'progress_hooks': [ydl_hook] if progress_callback else [],
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        title = info.get('title', 'YouTube Audio')
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                info = ydl.extract_info(clean_url, download=True)
+            except getattr(yt_dlp.utils, "MaxDownloadsReached", Exception):
+                info = {}
+            if isinstance(info, dict) and 'entries' in info:
+                entries = list(info['entries']) if info['entries'] else []
+                info = entries[0] if entries else {}
+            title = info.get('title', 'YouTube Audio') if isinstance(info, dict) else 'YouTube Audio'
 
-    expected_mp3 = output_dir / f"yt_dl_{temp_id}.mp3"
-    if not expected_mp3.exists():
-        matches = list(output_dir.glob(f"yt_dl_{temp_id}*.mp3"))
-        if matches:
-            expected_mp3 = matches[0]
-        else:
-            raise RuntimeError("YouTube audio download failed: converted MP3 file not found.")
+        expected_mp3 = output_dir / f"yt_dl_{temp_id}.mp3"
+        if not expected_mp3.exists():
+            matches = list(output_dir.glob(f"yt_dl_{temp_id}*.mp3"))
+            if matches:
+                expected_mp3 = matches[0]
+            else:
+                raise RuntimeError("YouTube audio download failed: converted MP3 file not found.")
 
-    if output_file.exists():
+        if output_file.exists():
+            try:
+                output_file.unlink()
+            except Exception:
+                pass
+
         try:
-            output_file.unlink()
+            shutil.move(str(expected_mp3), str(output_file))
         except Exception:
-            pass
+            shutil.copy2(str(expected_mp3), str(output_file))
+            try:
+                expected_mp3.unlink()
+            except Exception:
+                pass
 
-    shutil.move(str(expected_mp3), str(output_file))
-    return title
+        return title
+    finally:
+        for leftover in output_dir.glob(f"yt_dl_{temp_id}*"):
+            try:
+                leftover.unlink()
+            except Exception:
+                pass
 
 
 def run_demucs_separation(input_audio: Path, output_dir: Path, progress_callback=None):
