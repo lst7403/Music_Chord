@@ -1,13 +1,25 @@
-import os
-import shutil
-import subprocess
+"""
+Unified Audio Processing Pipeline Orchestrator.
+
+Orchestrates multi-stage audio processing pipeline:
+1. Audio format conversion (FFmpeg)
+2. Stem separation (Demucs)
+3. Stem combination (Bass + Other, Instrumental)
+4. Chord recognition (BTC Transformer)
+5. Beat & downbeat tracking (BeatThis)
+6. Beat-synchronous chord alignment
+
+Underlying domain implementations are modularized in `module/`:
+- `module.source_separation`
+- `module.chord_recognition`
+- `module.beat_tracking`
+"""
+
 import threading
 import time
 import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional
-
-import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
@@ -42,7 +54,7 @@ DATA_DIR = BASE_DIR / "data"
 pipeline_lock = threading.Lock()
 pipeline_state: Dict[str, Any] = {
     "status": "idle",  # idle, running, completed, error
-    "step": "idle",    # idle, converting, separating, combining, recognizing, completed, error
+    "step": "idle",    # idle, converting, separating, combining, recognizing, tracking_beats, aligning, completed, error
     "progress": 0,     # 0 to 100
     "message": "Ready",
     "filename": "",
@@ -52,13 +64,9 @@ pipeline_state: Dict[str, Any] = {
     "elapsed_seconds": 0,
 }
 
-# Cached BTC model
-_cached_model = None
-# Cached BeatThis model
-_cached_beat_model = None
-
 
 def get_pipeline_status() -> Dict[str, Any]:
+    """Retrieve current pipeline execution status safely."""
     with pipeline_lock:
         state_copy = dict(pipeline_state)
         if state_copy["status"] == "running" and state_copy["started_at"]:
@@ -67,6 +75,7 @@ def get_pipeline_status() -> Dict[str, Any]:
 
 
 def update_status(step: str, progress: int, message: str, status: str = "running", error: Optional[str] = None):
+    """Update global pipeline state thread-safely."""
     with pipeline_lock:
         pipeline_state["status"] = status
         pipeline_state["step"] = step
@@ -686,6 +695,7 @@ def _run_core_pipeline(music_mp3: Path, display_name: str):
 def run_pipeline_task(temp_audio_file: Path, original_filename: str):
     """Background execution worker for complete audio processing pipeline."""
     try:
+        temp_audio_file = Path(temp_audio_file)
         with pipeline_lock:
             pipeline_state["status"] = "running"
             pipeline_state["step"] = "converting"
@@ -748,3 +758,29 @@ def run_youtube_pipeline_task(youtube_url: str):
         import traceback
         traceback.print_exc()
         update_status("error", 0, f"Processing failed: {str(e)}", status="error", error=str(e))
+
+
+__all__ = [
+    # Pipeline Orchestration & State
+    "get_pipeline_status",
+    "update_status",
+    "run_pipeline_task",
+    "pipeline_state",
+    "pipeline_lock",
+    "DATA_DIR",
+    "BASE_DIR",
+    # Source Separation
+    "convert_to_mp3",
+    "run_demucs_separation",
+    "combine_bass_and_other",
+    "combine_instrumental",
+    # Chord Recognition
+    "get_btc_model",
+    "predict_chords",
+    # Beat Tracking & Alignment
+    "get_beat_model",
+    "predict_beats",
+    "save_beats",
+    "align_chords_to_beats",
+    "save_aligned_chords",
+]
