@@ -10,7 +10,9 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from pipeline import get_pipeline_status, run_pipeline_task, update_status
+from pydantic import BaseModel
+
+from pipeline import get_pipeline_status, run_pipeline_task, run_youtube_pipeline_task, update_status
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -95,6 +97,46 @@ async def upload_music(file: UploadFile = File(...)):
         "success": True,
         "message": f"Uploaded {orig_filename}. AI stem separation & chord analysis started.",
         "filename": orig_filename,
+    }
+
+
+class YouTubeRequest(BaseModel):
+    url: str
+
+
+@app.post("/api/youtube")
+async def process_youtube(req: YouTubeRequest):
+    """Download audio from YouTube and trigger Demucs separation & chord recognition pipeline."""
+    current_status = get_pipeline_status()
+    if current_status["status"] == "running":
+        raise HTTPException(
+            status_code=409,
+            detail="A processing task is already running. Please wait for it to finish."
+        )
+
+    url = (req.url or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="YouTube URL is required.")
+
+    valid_hosts = ["youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"]
+    if not any(host in url.lower() for host in valid_hosts):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid YouTube URL. Please provide a link from youtube.com or youtu.be"
+        )
+
+    # Start background processing thread
+    thread = threading.Thread(
+        target=run_youtube_pipeline_task,
+        args=(url,),
+        daemon=True
+    )
+    thread.start()
+
+    return {
+        "success": True,
+        "message": "YouTube audio download and AI chord analysis started.",
+        "url": url,
     }
 
 
@@ -412,4 +454,31 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="127.0.0.1", port=8080, reload=True)
+    import socket
+    import sys
+
+    # Support UTF-8 emoji output on Windows cp950/Big5 console
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
+    port = 8080
+    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+        port = int(sys.argv[1])
+    else:
+        # Check if port is truly bindable
+        def port_available(p):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                try:
+                    s.bind(("0.0.0.0", p))
+                    return True
+                except OSError:
+                    return False
+
+        if not port_available(port):
+            print(f"⚠️  Port {port} is currently occupied or in CLOSE_WAIT. Automatically using port 8081...")
+            port = 8081
+
+    print(f"🚀 Launching ChordVision web server on http://localhost:{port}")
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

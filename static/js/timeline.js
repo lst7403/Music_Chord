@@ -22,8 +22,8 @@ export function generateMiniGuitarSvg(chordInput, rootColor = '#6366f1') {
       <svg viewBox="0 0 86 86" class="mini-fretboard-svg mini-rest-fretboard-svg">
         <rect x="15" y="15" width="56" height="66" rx="6" fill="#0a0f1d" stroke="#334155" stroke-width="1.2" stroke-dasharray="3,3"/>
         <circle cx="43" cy="40" r="16" fill="rgba(148, 163, 184, 0.08)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
-        <text x="43" y="47" fill="#94a3b8" font-size="22" font-weight="900" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">𝄽</text>
-        <text x="43" y="70" fill="#64748b" font-size="9.5" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle" letter-spacing="1.5">REST</text>
+        <text x="43" y="47" fill="#94a3b8" font-size="22" font-weight="900" font-family="'Outfit', -apple-system, sans-serif" text-anchor="middle">𝄽</text>
+        <text x="43" y="70" fill="#64748b" font-size="9.5" font-weight="800" font-family="'Outfit', -apple-system, sans-serif" text-anchor="middle" letter-spacing="1.5">REST</text>
       </svg>
     `;
   }
@@ -33,7 +33,7 @@ export function generateMiniGuitarSvg(chordInput, rootColor = '#6366f1') {
     return `
       <svg viewBox="0 0 86 86" class="mini-fretboard-svg mini-custom-fretboard-svg">
         <rect x="15" y="15" width="56" height="66" rx="6" fill="#0a0f1d" stroke="#334155" stroke-width="1.2"/>
-        <text x="43" y="52" fill="#94a3b8" font-size="11" font-weight="700" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">Custom</text>
+        <text x="43" y="52" fill="#94a3b8" font-size="11" font-weight="700" font-family="'Outfit', -apple-system, sans-serif" text-anchor="middle">Custom</text>
       </svg>
     `;
   }
@@ -129,8 +129,8 @@ function generateMiniPianoSvg(chordStr, rootColor = '#6366f1') {
       <svg viewBox="0 0 88 50" class="mini-piano-svg mini-rest-piano-svg">
         <rect x="6" y="5" width="76" height="40" rx="6" fill="#0a0f1d" stroke="#334155" stroke-width="1.2" stroke-dasharray="3,3"/>
         <circle cx="44" cy="22" r="11" fill="rgba(148, 163, 184, 0.08)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
-        <text x="44" y="27" fill="#94a3b8" font-size="16" font-weight="900" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">𝄽</text>
-        <text x="44" y="41" fill="#64748b" font-size="7.5" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle" letter-spacing="1">REST</text>
+        <text x="44" y="27" fill="#94a3b8" font-size="16" font-weight="900" font-family="'Outfit', -apple-system, sans-serif" text-anchor="middle">𝄽</text>
+        <text x="44" y="41" fill="#64748b" font-size="7.5" font-weight="800" font-family="'Outfit', -apple-system, sans-serif" text-anchor="middle" letter-spacing="1">REST</text>
       </svg>
     `;
   }

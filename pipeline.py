@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -10,6 +11,29 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
+
+# --- Windows Security / WDAC Numba Compatibility Shim ---
+# Windows Smart App Control often blocks unsigned PyPI C-extension DLLs like numba._helperlib.
+# Librosa only uses numba for optional JIT decoration; this shim provides pure Python stubs so
+# CQT feature extraction and chord recognition run seamlessly on Windows without any DLL errors.
+try:
+    import numba
+except Exception:
+    import sys
+    import types
+    m = types.ModuleType("numba")
+    m.jit = m.njit = m.guvectorize = m.stencil = lambda *a, **k: (lambda f: f) if not (len(a) == 1 and callable(a[0])) else a[0]
+    m.vectorize = lambda *a, **k: (lambda f: np.vectorize(f))
+    class DummyDispatcher:
+        pass
+    m_reg = types.ModuleType("registry")
+    m_reg.CPUDispatcher = DummyDispatcher
+    m_core = types.ModuleType("core")
+    m_core.registry = m_reg
+    m.core = m_core
+    sys.modules["numba"] = m
+    sys.modules["numba.core"] = m_core
+    sys.modules["numba.core.registry"] = m_reg
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -84,10 +108,20 @@ def get_beat_model(checkpoint_path: str = "final0", device: Optional[str] = None
     return _cached_beat_model
 
 
+def get_ffmpeg_executable() -> str:
+    """Find FFmpeg binary: check imageio-ffmpeg first, then fallback to system ffmpeg."""
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return "ffmpeg"
+
+
 def convert_to_mp3(input_file: Path, output_file: Path):
     """Convert any audio file format to standardized MP3 using ffmpeg."""
+    ffmpeg_exe = get_ffmpeg_executable()
     cmd = [
-        "ffmpeg", "-y",
+        ffmpeg_exe, "-y",
         "-i", str(input_file),
         "-vn",
         "-ar", "44100",
@@ -100,25 +134,112 @@ def convert_to_mp3(input_file: Path, output_file: Path):
         raise RuntimeError(f"FFmpeg audio conversion failed: {res.stderr.decode('utf-8', errors='ignore')}")
 
 
-def run_demucs_separation(input_audio: Path, output_dir: Path):
-    """Run Demucs source separation to produce vocals, drums, bass, other."""
-    import demucs.separate
+def download_youtube_audio(url: str, output_file: Path, progress_callback=None) -> str:
+    """Download audio from a YouTube URL and convert to high-quality MP3."""
+    import yt_dlp
+
+    ffmpeg_exe = get_ffmpeg_executable()
+    output_file = Path(output_file)
+    output_dir = output_file.parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    temp_id = uuid.uuid4().hex[:8]
+    outtmpl = str(output_dir / f"yt_dl_{temp_id}.%(ext)s")
+
+    def ydl_hook(d):
+        if progress_callback and d.get('status') == 'downloading':
+            total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+            downloaded = d.get('downloaded_bytes', 0)
+            if total > 0:
+                pct = int((downloaded / total) * 100)
+                progress_callback(pct)
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': outtmpl,
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '320',
+        }],
+        'ffmpeg_location': ffmpeg_exe,
+        'quiet': True,
+        'no_warnings': True,
+        'progress_hooks': [ydl_hook] if progress_callback else [],
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        title = info.get('title', 'YouTube Audio')
+
+    expected_mp3 = output_dir / f"yt_dl_{temp_id}.mp3"
+    if not expected_mp3.exists():
+        matches = list(output_dir.glob(f"yt_dl_{temp_id}*.mp3"))
+        if matches:
+            expected_mp3 = matches[0]
+        else:
+            raise RuntimeError("YouTube audio download failed: converted MP3 file not found.")
+
+    if output_file.exists():
+        try:
+            output_file.unlink()
+        except Exception:
+            pass
+
+    shutil.move(str(expected_mp3), str(output_file))
+    return title
+
+
+def run_demucs_separation(input_audio: Path, output_dir: Path, progress_callback=None):
+    """Run Demucs source separation to produce vocals, drums, bass, other with real-time progress callbacks."""
+    import torch
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model_name = "htdemucs"
 
-    cmd_args = [
-        "-n", model_name,
-        "-o", str(output_dir),
-        "-d", device,
-        "--filename", "../{stem}.{ext}",
-        str(input_audio)
-    ]
-    demucs.separate.main(cmd_args)
+    try:
+        from demucs.separate import Separator, save_audio
 
-    # Clean up empty htdemucs folder if created
-    extra_folder = output_dir / model_name
-    if extra_folder.exists() and not any(extra_folder.iterdir()):
-        shutil.rmtree(extra_folder)
+        def demucs_cb(d):
+            if progress_callback:
+                offset = d.get("segment_offset", 0)
+                total = d.get("audio_length", 1)
+                if total > 0:
+                    pct = min(100, max(0, int((offset / total) * 100)))
+                    progress_callback(pct)
+
+        separator = Separator(
+            model=model_name,
+            device=device,
+            callback=demucs_cb if progress_callback else None
+        )
+
+        origin, separated = separator.separate_audio_file(Path(input_audio))
+        for stem_name, stem_tensor in separated.items():
+            stem_out = output_dir / f"{stem_name}.wav"
+            save_audio(stem_tensor, stem_out, samplerate=separator.samplerate)
+
+        if progress_callback:
+            progress_callback(100)
+
+    except Exception as e:
+        print(f"Demucs Separator callback failed ({e}), falling back to Demucs CLI...")
+        import demucs.separate
+        cmd_args = [
+            "-n", model_name,
+            "-o", str(output_dir),
+            "-d", device,
+            "--filename", "../{stem}.{ext}",
+            str(input_audio)
+        ]
+        demucs.separate.main(cmd_args)
+
+        # Clean up empty htdemucs folder if created
+        extra_folder = output_dir / model_name
+        if extra_folder.exists() and not any(extra_folder.iterdir()):
+            shutil.rmtree(extra_folder)
+
+        if progress_callback:
+            progress_callback(100)
 
 
 def combine_bass_and_other(bass_path: Path, other_path: Path, output_path: Path):
@@ -161,8 +282,18 @@ def predict_chords(btc_wrapper, audio_file: Path, progress_callback=None, show_p
     if show_progress:
         print("1/2 Extracting log-CQT audio spectrogram features...")
 
+    # Load audio cleanly via soundfile & scipy to ensure compatibility without librosa.load
+    wav_data, sr_in = sf.read(str(audio_file))
+    if wav_data.ndim > 1:
+        wav_data = wav_data.mean(axis=1)
+    if sr_in != 22050:
+        import scipy.signal
+        target_len = int(len(wav_data) * 22050 / sr_in)
+        wav_data = scipy.signal.resample(wav_data, target_len)
+    wav_mono = wav_data.astype(np.float32)
+
     feat = features.audio_to_features(
-        str(audio_file),
+        wav_mono,
         sr_target=22050,
         inst_len=10.0,
         n_bins=144,
@@ -490,6 +621,68 @@ def save_aligned_chords(
     df.to_csv(output_csv, index=False)
 
 
+def _run_core_pipeline(music_mp3: Path, display_name: str):
+    """Core audio processing pipeline: Demucs, Combine, BTC Chords, Beat Tracking, Alignment."""
+    # 2. Demucs Separation (25% -> 60%)
+    update_status("separating", 25, "Running Demucs AI stem separation (0%)...")
+
+    def demucs_progress(pct):
+        overall = 25 + int(pct * 0.35)  # 25% -> 60%
+        update_status("separating", overall, f"Demucs AI separating stems ({pct}%)...")
+
+    run_demucs_separation(music_mp3, DATA_DIR, progress_callback=demucs_progress)
+
+    # 3. Combine Bass + Other & Full Instrumental (60% -> 70%)
+    update_status("combining", 60, "Synthesizing harmonic accompaniment & instrumental backing tracks...")
+    drums_file = DATA_DIR / "drums.wav"
+    bass_file = DATA_DIR / "bass.wav"
+    other_file = DATA_DIR / "other.wav"
+    accompaniment_file = DATA_DIR / "bass_other.wav"
+    instrumental_file = DATA_DIR / "instrumental.wav"
+
+    if bass_file.exists() and other_file.exists():
+        combine_bass_and_other(bass_file, other_file, accompaniment_file)
+        chord_input_audio = accompaniment_file
+    else:
+        chord_input_audio = music_mp3
+
+    if drums_file.exists() and bass_file.exists() and other_file.exists():
+        combine_instrumental(drums_file, bass_file, other_file, instrumental_file)
+
+    # 4. BTC Chord Recognition (70% -> 85%)
+    update_status("recognizing", 70, "Running Transformer AI chord recognition...")
+    btc_model = get_btc_model()
+
+    def chord_progress(pct):
+        overall_progress = 70 + int(pct * 0.15)
+        update_status("recognizing", overall_progress, f"Predicting chords ({pct}%)...")
+
+    raw_chords = predict_chords(btc_model, chord_input_audio, progress_callback=chord_progress)
+
+    # Save to chords.csv
+    df_chords = pd.DataFrame(raw_chords)
+    if not df_chords.empty:
+        df_chords["duration"] = (df_chords["end"] - df_chords["start"]).round(3)
+    else:
+        df_chords = pd.DataFrame(columns=["start", "end", "chord", "duration"])
+
+    df_chords.to_csv(DATA_DIR / "chords.csv", index=False)
+
+    # 5. Beat Tracking with beat_this (85% -> 92%)
+    update_status("tracking_beats", 86, "Tracking beats and downbeats with BeatThis AI...")
+    beat_audio = music_mp3 if music_mp3.exists() else chord_input_audio
+    beat_results = predict_beats(beat_audio)
+    save_beats(beat_results, DATA_DIR / "beats.csv")
+
+    # 6. Align Chords to Beats & Measures (92% -> 100%)
+    update_status("aligning", 94, "Aligning harmonic chords to rhythm beats and measures...")
+    aligned_results = align_chords_to_beats(df_chords, beat_results.get("df", DATA_DIR / "beats.csv"))
+    save_aligned_chords(aligned_results, DATA_DIR / "aligned_chords.csv")
+
+    # 7. Complete
+    update_status("completed", 100, f"Successfully processed {display_name}!", status="completed")
+
+
 def run_pipeline_task(temp_audio_file: Path, original_filename: str):
     """Background execution worker for complete audio processing pipeline."""
     try:
@@ -516,59 +709,40 @@ def run_pipeline_task(temp_audio_file: Path, original_filename: str):
             except Exception:
                 pass
 
-        # 2. Demucs Separation
-        update_status("separating", 25, "Running Demucs AI stem separation (Vocals, Drums, Bass, Other)...")
-        run_demucs_separation(music_mp3, DATA_DIR)
+        _run_core_pipeline(music_mp3, original_filename)
 
-        # 3. Combine Bass + Other & Full Instrumental
-        update_status("combining", 60, "Synthesizing harmonic accompaniment & instrumental backing tracks...")
-        drums_file = DATA_DIR / "drums.wav"
-        bass_file = DATA_DIR / "bass.wav"
-        other_file = DATA_DIR / "other.wav"
-        accompaniment_file = DATA_DIR / "bass_other.wav"
-        instrumental_file = DATA_DIR / "instrumental.wav"
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        update_status("error", 0, f"Processing failed: {str(e)}", status="error", error=str(e))
 
-        if bass_file.exists() and other_file.exists():
-            combine_bass_and_other(bass_file, other_file, accompaniment_file)
-            chord_input_audio = accompaniment_file
-        else:
-            chord_input_audio = music_mp3
 
-        if drums_file.exists() and bass_file.exists() and other_file.exists():
-            combine_instrumental(drums_file, bass_file, other_file, instrumental_file)
+def run_youtube_pipeline_task(youtube_url: str):
+    """Background execution worker for downloading YouTube audio and running complete pipeline."""
+    try:
+        with pipeline_lock:
+            pipeline_state["status"] = "running"
+            pipeline_state["step"] = "downloading"
+            pipeline_state["progress"] = 5
+            pipeline_state["message"] = "Connecting to YouTube and fetching audio stream..."
+            pipeline_state["filename"] = "YouTube Video"
+            pipeline_state["error"] = None
+            pipeline_state["started_at"] = time.time()
+            pipeline_state["completed_at"] = None
 
-        # 4. BTC Chord Recognition
-        update_status("recognizing", 70, "Running Transformer AI chord recognition...")
-        btc_model = get_btc_model()
+        music_mp3 = DATA_DIR / "music.mp3"
 
-        def chord_progress(pct):
-            overall_progress = 70 + int(pct * 0.15)
-            update_status("recognizing", overall_progress, f"Predicting chords ({pct}%)...")
+        def dl_progress(pct):
+            overall_pct = 5 + int(pct * 0.15)
+            update_status("downloading", overall_pct, f"Downloading YouTube audio ({pct}%)...")
 
-        raw_chords = predict_chords(btc_model, chord_input_audio, progress_callback=chord_progress)
+        update_status("downloading", 8, "Downloading high-fidelity audio stream from YouTube...")
+        video_title = download_youtube_audio(youtube_url, music_mp3, progress_callback=dl_progress)
 
-        # Save to chords.csv
-        df_chords = pd.DataFrame(raw_chords)
-        if not df_chords.empty:
-            df_chords["duration"] = (df_chords["end"] - df_chords["start"]).round(3)
-        else:
-            df_chords = pd.DataFrame(columns=["start", "end", "chord", "duration"])
+        with pipeline_lock:
+            pipeline_state["filename"] = f"{video_title}.mp3"
 
-        df_chords.to_csv(DATA_DIR / "chords.csv", index=False)
-
-        # 5. Beat Tracking with beat_this
-        update_status("tracking_beats", 85, "Tracking beats and downbeats with BeatThis AI...")
-        beat_audio = music_mp3 if music_mp3.exists() else chord_input_audio
-        beat_results = predict_beats(beat_audio)
-        save_beats(beat_results, DATA_DIR / "beats.csv")
-
-        # 6. Align Chords to Beats & Measures
-        update_status("aligning", 92, "Aligning harmonic chords to rhythm beats and measures...")
-        aligned_results = align_chords_to_beats(df_chords, beat_results.get("df", DATA_DIR / "beats.csv"))
-        save_aligned_chords(aligned_results, DATA_DIR / "aligned_chords.csv")
-
-        # 7. Complete
-        update_status("completed", 100, f"Successfully processed {original_filename}!", status="completed")
+        _run_core_pipeline(music_mp3, f"{video_title}.mp3")
 
     except Exception as e:
         import traceback

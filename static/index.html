@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ChordVision — Real-time AI music separation, beat alignment, interactive chord editing, and complete 340+ guitar voicing visualizer.">
+  <meta name="theme-color" content="#0b0e14">
+  <meta name="color-scheme" content="dark">
   <title>ChordVision — AI Music & Chord Visualizer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎸</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -97,14 +101,15 @@
       </div>
     </header>
 
+
     <!-- GLOBAL AUDIO PLAYER BAR (Always visible across all views) -->
-    <section class="card player-bar">
+    <section class="card player-bar" aria-label="Audio Playback and Beat Controls">
       <div class="player-content">
         <!-- Play / Pause & Skip Buttons -->
         <div class="player-controls">
-          <button id="btn-prev-chord" class="player-btn" title="Previous Chord (J)">⏮</button>
-          <button id="btn-play-pause" class="player-btn play-btn-hero" title="Play / Pause (Space)">▶</button>
-          <button id="btn-next-chord" class="player-btn" title="Next Chord (L)">⏭</button>
+          <button id="btn-prev-chord" class="player-btn" title="Previous Chord (J)" aria-label="Previous Chord (J)">⏮</button>
+          <button id="btn-play-pause" class="player-btn play-btn-hero" title="Play / Pause (Space)" aria-label="Play or Pause (Space)">▶</button>
+          <button id="btn-next-chord" class="player-btn" title="Next Chord (L)" aria-label="Next Chord (L)">⏭</button>
         </div>
 
         <!-- Rhythm & Beat Visualizer HUD -->
@@ -126,7 +131,7 @@
             <span id="measure-num" class="measure-val">--</span>
           </div>
 
-          <button id="btn-metronome" class="player-btn btn-sm btn-metronome" title="Toggle Metronome Audio Click">
+          <button id="btn-metronome" class="player-btn btn-sm btn-metronome" title="Toggle Metronome Audio Click" aria-label="Toggle Metronome Audio Click">
             <span class="metro-icon">🔔</span>
           </button>
         </div>
@@ -135,7 +140,7 @@
         <div class="player-scrubber-area">
           <span id="time-current" class="time-text">0:00</span>
           <div class="scrubber-bar-container" id="scrubber-container">
-            <input type="range" id="audio-scrubber" min="0" max="100" value="0" step="0.01">
+            <input type="range" id="audio-scrubber" min="0" max="100" value="0" step="0.01" aria-label="Audio timeline position">
             <div id="scrubber-fill" class="scrubber-fill"></div>
           </div>
           <span id="time-total" class="time-text">0:00</span>
@@ -143,14 +148,16 @@
 
         <!-- Volume & Mute -->
         <div class="player-volume-area">
-          <button id="btn-mute" class="player-btn btn-sm" title="Mute (M)">🔊</button>
-          <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.9" class="volume-slider">
+          <button id="btn-mute" class="player-btn btn-sm" title="Mute (M)" aria-label="Mute or Unmute Audio (M)">🔊</button>
+          <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.9" class="volume-slider" aria-label="Audio Volume">
         </div>
       </div>
     </section>
 
-    <!-- 1. SONG VISUALIZER MAIN CONTENT VIEW -->
-    <main class="main-layout" id="view-visualizer">
+    <!-- MAIN APP VIEWS CONTAINER -->
+    <main id="app-main" class="app-main">
+      <!-- 1. SONG VISUALIZER VIEW -->
+      <section class="view-panel main-layout" id="view-visualizer" aria-label="Song Visualizer">
       <!-- 2. DUAL-ROW TIMELINE: CONTINUOUS CHORD STREAM (ROW 1) + BEAT & MEASURE TAPE (ROW 2) -->
       <section class="card chord-timeline-section">
         <div class="sheet-header">
@@ -173,7 +180,7 @@
           <div class="sheet-controls-area">
             <div class="align-search-wrap">
               <span class="search-icon">🔍</span>
-              <input type="text" id="timeline-search-input" placeholder="Search chord (e.g. G#)..." class="search-input">
+              <input type="text" id="timeline-search-input" placeholder="Search chord (e.g. G#)..." class="search-input" aria-label="Search chord in timeline progression">
             </div>
 
             <!-- Tape Navigation & Active Bar Badge -->
@@ -295,10 +302,10 @@
           <div class="empty-state">Play audio or click a chord to see all pressing patterns & fingerings.</div>
         </div>
       </section>
-    </main>
+    </section>
 
     <!-- 2. EDIT MODE MAIN CONTENT VIEW (IDENTICAL VISUALS + DRAG, GAP INSERT & CHORD EDIT) -->
-    <main class="main-layout" id="view-editor" style="display: none;">
+    <section class="view-panel main-layout" id="view-editor" aria-label="Interactive Harmony and Beat Editor" style="display: none;">
       <!-- EDITOR TOP ACTION BAR -->
       <section class="card editor-toolbar-card">
         <div class="editor-toolbar-left">
@@ -349,7 +356,7 @@
           <div class="sheet-controls-area">
             <div class="align-search-wrap">
               <span class="search-icon">🔍</span>
-              <input type="text" id="editor-timeline-search" placeholder="Search / filter chords..." class="search-input">
+              <input type="text" id="editor-timeline-search" placeholder="Search / filter chords..." class="search-input" aria-label="Search or filter chords in editor">
             </div>
 
             <!-- Tempo / BPM Controller -->
@@ -470,118 +477,119 @@
           </div>
         </div>
       </section>
-    </main>
-
-    <!-- INTERACTIVE CHORD PICKER POPOVER MODAL -->
-    <div id="chord-picker-modal" class="modal-overlay" aria-hidden="true">
-      <div class="modal-card chord-picker-card">
-        <div class="modal-header">
-          <div class="modal-title-group">
-            <div class="modal-icon">🎼</div>
-            <div>
-              <h3 id="chord-picker-title">Edit Chord</h3>
-              <p id="chord-picker-subtitle" class="modal-subtitle">Select root and harmonic quality or type a custom chord name</p>
-            </div>
-          </div>
-          <button id="btn-close-chord-picker" class="btn-modal-close" title="Close (Esc)">✕</button>
-        </div>
-
-        <div class="modal-body chord-picker-body">
-          <!-- LIVE PREVIEW BANNER -->
-          <div class="chord-picker-preview-banner">
-            <div class="preview-text-group">
-              <span class="preview-label" id="picker-preview-label">Selected Chord (Fingering Shape)</span>
-              <span id="picker-selected-chord" class="preview-chord-name">C</span>
-              <span id="picker-sounding-chord" class="preview-sounding-info" style="font-size: 11.5px; color: var(--accent-amber); font-weight: 700;"></span>
-            </div>
-            <div class="preview-mini-instrument" id="picker-mini-preview">
-              <!-- Mini guitar or piano SVG -->
-            </div>
-          </div>
-
-          <!-- 1. ROOT NOTE SELECTOR -->
-          <div class="picker-section">
-            <label class="picker-section-label">Root Note:</label>
-            <div class="picker-roots-grid" id="picker-roots-grid">
-              <button class="picker-chip root-chip active" data-root="C">C</button>
-              <button class="picker-chip root-chip" data-root="C#">C#</button>
-              <button class="picker-chip root-chip" data-root="D">D</button>
-              <button class="picker-chip root-chip" data-root="D#">D#</button>
-              <button class="picker-chip root-chip" data-root="E">E</button>
-              <button class="picker-chip root-chip" data-root="F">F</button>
-              <button class="picker-chip root-chip" data-root="F#">F#</button>
-              <button class="picker-chip root-chip" data-root="G">G</button>
-              <button class="picker-chip root-chip" data-root="G#">G#</button>
-              <button class="picker-chip root-chip" data-root="A">A</button>
-              <button class="picker-chip root-chip" data-root="A#">A#</button>
-              <button class="picker-chip root-chip" data-root="B">B</button>
-              <button class="picker-chip root-chip chip-rest" data-root="N">Rest (N)</button>
-            </div>
-          </div>
-
-          <!-- 2. QUALITY SELECTOR -->
-          <div class="picker-section" id="picker-quality-section">
-            <label class="picker-section-label">Chord Quality / Extension:</label>
-            <div class="picker-qualities-grid" id="picker-qualities-grid">
-              <button class="picker-chip quality-chip active" data-quality="">Major</button>
-              <button class="picker-chip quality-chip" data-quality="m">Minor (m)</button>
-              <button class="picker-chip quality-chip" data-quality="7">7 (Dominant)</button>
-              <button class="picker-chip quality-chip" data-quality="maj7">maj7</button>
-              <button class="picker-chip quality-chip" data-quality="m7">m7</button>
-              <button class="picker-chip quality-chip" data-quality="sus4">sus4</button>
-              <button class="picker-chip quality-chip" data-quality="sus2">sus2</button>
-              <button class="picker-chip quality-chip" data-quality="dim">dim</button>
-              <button class="picker-chip quality-chip" data-quality="aug">aug</button>
-              <button class="picker-chip quality-chip" data-quality="add9">add9</button>
-            </div>
-          </div>
-
-          <!-- 3. CUSTOM INPUT & SCOPE OPTIONS -->
-          <div class="picker-custom-row">
-            <div class="custom-input-group">
-              <label for="picker-custom-input">Custom Chord Name:</label>
-              <input type="text" id="picker-custom-input" placeholder="e.g. F#m7b5 or G/B" class="search-input">
-            </div>
-
-            <div class="picker-scope-group">
-              <label class="toggle-label" title="Apply this chord to every beat in the current bar">
-                <input type="checkbox" id="picker-apply-whole-bar">
-                <span class="toggle-custom"></span>
-                Apply to whole bar
-              </label>
-            </div>
-          </div>
-
-          <div class="modal-actions picker-actions">
-            <button id="btn-cancel-chord-picker" class="btn btn-ghost">Cancel</button>
-            <button id="btn-apply-chord-picker" class="btn btn-hero-action">
-              <span>✓ Apply Chord</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
 
     <!-- 3. GUITAR CHORD LIBRARY VIEW (CHORD_ALTERNATIVES_DB) -->
-    <main class="chord-library-view" id="view-chord-library" style="display: none;">
+    <section class="view-panel chord-library-view" id="view-chord-library" aria-label="Guitar Chord Library" style="display: none;">
       <div id="chord-library-content">
         <!-- Injected dynamically by chord-library.js -->
       </div>
-    </main>
+    </section>
+  </main>
 
-    <!-- UPLOAD MUSIC MODAL -->
-    <div id="upload-modal-overlay" class="modal-overlay" aria-hidden="true">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div class="modal-title-group">
-            <div class="modal-icon">🎵</div>
-            <div>
-              <h3>AI Music Separation & Chord Analysis</h3>
-              <p class="modal-subtitle">Upload any song to extract stems and auto-detect chords using RTX GPU</p>
-            </div>
+  <!-- INTERACTIVE CHORD PICKER POPOVER MODAL -->
+  <div id="chord-picker-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="chord-picker-title" aria-hidden="true">
+    <div class="modal-card chord-picker-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon">🎼</div>
+          <div>
+            <h3 id="chord-picker-title">Edit Chord</h3>
+            <p id="chord-picker-subtitle" class="modal-subtitle">Select root and harmonic quality or type a custom chord name</p>
           </div>
-          <button id="btn-close-upload" class="btn-modal-close" title="Close">✕</button>
         </div>
+        <button id="btn-close-chord-picker" class="btn-modal-close" title="Close (Esc)" aria-label="Close (Esc)">✕</button>
+      </div>
+
+      <div class="modal-body chord-picker-body">
+        <!-- LIVE PREVIEW BANNER -->
+        <div class="chord-picker-preview-banner">
+          <div class="preview-text-group">
+            <span class="preview-label" id="picker-preview-label">Selected Chord (Fingering Shape)</span>
+            <span id="picker-selected-chord" class="preview-chord-name">C</span>
+            <span id="picker-sounding-chord" class="preview-sounding-info" style="font-size: 11.5px; color: var(--accent-amber); font-weight: 700;"></span>
+          </div>
+          <div class="preview-mini-instrument" id="picker-mini-preview">
+            <!-- Mini guitar or piano SVG -->
+          </div>
+        </div>
+
+        <!-- 1. ROOT NOTE SELECTOR -->
+        <div class="picker-section">
+          <label class="picker-section-label">Root Note:</label>
+          <div class="picker-roots-grid" id="picker-roots-grid">
+            <button class="picker-chip root-chip active" data-root="C">C</button>
+            <button class="picker-chip root-chip" data-root="C#">C#</button>
+            <button class="picker-chip root-chip" data-root="D">D</button>
+            <button class="picker-chip root-chip" data-root="D#">D#</button>
+            <button class="picker-chip root-chip" data-root="E">E</button>
+            <button class="picker-chip root-chip" data-root="F">F</button>
+            <button class="picker-chip root-chip" data-root="F#">F#</button>
+            <button class="picker-chip root-chip" data-root="G">G</button>
+            <button class="picker-chip root-chip" data-root="G#">G#</button>
+            <button class="picker-chip root-chip" data-root="A">A</button>
+            <button class="picker-chip root-chip" data-root="A#">A#</button>
+            <button class="picker-chip root-chip" data-root="B">B</button>
+            <button class="picker-chip root-chip chip-rest" data-root="N">Rest (N)</button>
+          </div>
+        </div>
+
+        <!-- 2. QUALITY SELECTOR -->
+        <div class="picker-section" id="picker-quality-section">
+          <label class="picker-section-label">Chord Quality / Extension:</label>
+          <div class="picker-qualities-grid" id="picker-qualities-grid">
+            <button class="picker-chip quality-chip active" data-quality="">Major</button>
+            <button class="picker-chip quality-chip" data-quality="m">Minor (m)</button>
+            <button class="picker-chip quality-chip" data-quality="7">7 (Dominant)</button>
+            <button class="picker-chip quality-chip" data-quality="maj7">maj7</button>
+            <button class="picker-chip quality-chip" data-quality="m7">m7</button>
+            <button class="picker-chip quality-chip" data-quality="sus4">sus4</button>
+            <button class="picker-chip quality-chip" data-quality="sus2">sus2</button>
+            <button class="picker-chip quality-chip" data-quality="dim">dim</button>
+            <button class="picker-chip quality-chip" data-quality="aug">aug</button>
+            <button class="picker-chip quality-chip" data-quality="add9">add9</button>
+          </div>
+        </div>
+
+        <!-- 3. CUSTOM INPUT & SCOPE OPTIONS -->
+        <div class="picker-custom-row">
+          <div class="custom-input-group">
+            <label for="picker-custom-input">Custom Chord Name:</label>
+            <input type="text" id="picker-custom-input" placeholder="e.g. F#m7b5 or G/B" class="search-input" aria-label="Custom chord name input">
+          </div>
+
+          <div class="picker-scope-group">
+            <label class="toggle-label" title="Apply this chord to every beat in the current bar">
+              <input type="checkbox" id="picker-apply-whole-bar" aria-label="Apply to whole bar">
+              <span class="toggle-custom"></span>
+              Apply to whole bar
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions picker-actions">
+          <button id="btn-cancel-chord-picker" class="btn btn-ghost">Cancel</button>
+          <button id="btn-apply-chord-picker" class="btn btn-hero-action">
+            <span>✓ Apply Chord</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD MUSIC MODAL -->
+  <div id="upload-modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon">🎵</div>
+          <div>
+            <h3 id="upload-modal-title">AI Music Separation & Chord Analysis</h3>
+            <p class="modal-subtitle">Upload any song to extract stems and auto-detect chords using RTX GPU</p>
+          </div>
+        </div>
+        <button id="btn-close-upload" class="btn-modal-close" title="Close" aria-label="Close">✕</button>
+      </div>
 
         <div class="modal-body">
           <!-- ERROR BANNER -->
@@ -591,37 +599,132 @@
             <button id="btn-retry-upload" class="btn btn-sm btn-ghost">Reset</button>
           </div>
 
-          <!-- 1. FILE SELECTION FORM SECTION -->
-          <div id="upload-form-section" class="upload-form-section">
-            <div id="upload-dropzone" class="upload-dropzone">
-              <div class="dropzone-icon">🚀</div>
-              <h4>Drag & drop song here</h4>
-              <p class="dropzone-hint">Supports MP3, WAV, M4A, FLAC, OGG, AAC</p>
-              <button type="button" class="btn btn-sm btn-select-file">Browse Audio File</button>
-              <input type="file" id="music-file-input" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" style="display: none;">
-            </div>
+          <!-- SOURCE TABS -->
+          <div class="modal-tabs" id="modal-source-tabs">
+            <button type="button" class="modal-tab-btn active" id="tab-btn-file">
+              <span class="tab-icon">📁</span>
+              <span>Local Audio File</span>
+            </button>
+            <button type="button" class="modal-tab-btn" id="tab-btn-youtube">
+              <div class="yt-live-pill-mini">
+                <span class="yt-dot"></span>
+                <span class="yt-brand-text">YouTube</span>
+              </div>
+              <span>Link &amp; Convert</span>
+            </button>
+          </div>
 
-            <div id="file-details" class="file-details-card" style="display: none;">
-              <div class="file-info-group">
-                <span class="file-type-badge">AUDIO</span>
-                <div class="file-text-info">
-                  <span id="selected-file-name" class="file-name">song.mp3</span>
-                  <span id="selected-file-size" class="file-size">0.00 MB</span>
+          <!-- 1. FILE & YOUTUBE SELECTION FORM SECTION -->
+          <div id="upload-form-section" class="upload-form-section">
+            <!-- TAB PANEL A: FILE UPLOAD -->
+            <div id="panel-file-upload" class="tab-panel active">
+              <div id="upload-dropzone" class="upload-dropzone">
+                <div class="dropzone-icon">🚀</div>
+                <h4>Drag &amp; drop song here</h4>
+                <p class="dropzone-hint">Supports MP3, WAV, M4A, FLAC, OGG, AAC (up to 100MB)</p>
+                <button type="button" class="btn btn-sm btn-select-file">Browse Audio File</button>
+                <input type="file" id="music-file-input" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" aria-label="Upload audio file" style="display: none;">
+              </div>
+
+              <div id="file-details" class="file-details-card" style="display: none;">
+                <div class="file-info-group">
+                  <span class="file-type-badge">AUDIO</span>
+                  <div class="file-text-info">
+                    <span id="selected-file-name" class="file-name">song.mp3</span>
+                    <span id="selected-file-size" class="file-size">0.00 MB</span>
+                  </div>
+                </div>
+                <button id="btn-remove-file" class="btn-remove-file" title="Remove file">✕</button>
+              </div>
+
+              <!-- OR DIVIDER -->
+              <div class="upload-or-divider">
+                <span>OR IMPORT FROM YOUTUBE</span>
+              </div>
+
+              <!-- SLEEK YOUTUBE QUICK BAR INSIDE FILE PANEL -->
+              <div class="panel-yt-unified-card" id="panel-yt-unified-card">
+                <div class="yt-unified-header">
+                  <div class="yt-live-pill">
+                    <span class="yt-dot"></span>
+                    <span class="yt-brand-text">YouTube</span>
+                  </div>
+                  <span class="yt-unified-title">Paste YouTube link to extract MP3 &amp; detect chords:</span>
+                </div>
+                <div class="yt-unified-input-row">
+                  <div class="yt-unified-input-wrap">
+                    <span class="yt-quick-icon">🔗</span>
+                    <input type="url" id="yt-frontend-input" class="yt-frontend-input" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." autocomplete="off" spellcheck="false" aria-label="YouTube video URL for audio separation">
+                    <button type="button" id="btn-yt-frontend-clear" class="btn-quick-clear" style="display: none;" title="Clear">✕</button>
+                  </div>
+                  <button type="button" id="btn-yt-frontend-submit" class="btn btn-yt-convert" disabled>
+                    <span class="btn-icon">⚡</span>
+                    <span>Convert &amp; Run</span>
+                  </button>
                 </div>
               </div>
-              <button id="btn-remove-file" class="btn-remove-file" title="Remove file">✕</button>
+
+              <div class="upload-feature-pills">
+                <div class="feature-pill"><span>🎛️</span> Demucs 4-Stem Separation</div>
+                <div class="feature-pill"><span>🎹</span> Accompaniment Mixing</div>
+                <div class="feature-pill"><span>🎼</span> BTC Transformer Chords</div>
+              </div>
+
+              <div class="modal-actions">
+                <button id="btn-start-upload" class="btn btn-hero-action" disabled>
+                  <span>⚡ Start AI Processing</span>
+                </button>
+              </div>
+
+              <div class="modal-footer-switch">
+                <span>Want dedicated YouTube controls?</span>
+                <button type="button" class="btn-switch-link" id="btn-switch-to-yt-tab">Open YouTube Tab &rarr;</button>
+              </div>
             </div>
 
-            <div class="upload-feature-pills">
-              <div class="feature-pill"><span>🎛️</span> Demucs 4-Stem Separation</div>
-              <div class="feature-pill"><span>🎹</span> Accompaniment Mixing</div>
-              <div class="feature-pill"><span>🎼</span> BTC Transformer Chords</div>
-            </div>
+            <!-- TAB PANEL B: YOUTUBE LINK -->
+            <div id="panel-youtube-upload" class="tab-panel" style="display: none;">
+              <div class="youtube-input-card">
+                <div class="youtube-header">
+                  <div class="yt-live-pill">
+                    <span class="yt-dot"></span>
+                    <span class="yt-brand-text">YouTube</span>
+                  </div>
+                  <div class="yt-text">
+                    <h4 class="yt-header-title">Paste YouTube link to extract MP3 &amp; detect chords:</h4>
+                    <p class="yt-sub-hint">Audio is extracted into 320kbps MP3 and processed with Demucs &amp; BTC AI</p>
+                  </div>
+                </div>
+                <div class="yt-input-wrapper">
+                  <span class="yt-url-prefix">🔗</span>
+                  <input type="url" id="youtube-url-input" class="yt-url-input" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." autocomplete="off" spellcheck="false" aria-label="YouTube video URL for chord conversion">
+                  <button type="button" id="btn-paste-clipboard" class="btn-paste-clip" title="Paste from clipboard">📋 Paste</button>
+                  <button type="button" id="btn-clear-yt-url" class="btn-clear-yt" style="display: none;" title="Clear">✕</button>
+                </div>
+                <div class="yt-hint-row">
+                  <span class="yt-tag-pill">✨ Music Videos</span>
+                  <span class="yt-tag-pill">⚡ YouTube Shorts</span>
+                  <span class="yt-tag-pill">🎵 Full Audio Tracks</span>
+                </div>
+              </div>
 
-            <div class="modal-actions">
-              <button id="btn-start-upload" class="btn btn-hero-action" disabled>
-                <span>⚡ Start AI Processing</span>
-              </button>
+              <div class="upload-feature-pills">
+                <div class="feature-pill"><span>⚡</span> High-Bitrate MP3 Extraction</div>
+                <div class="feature-pill"><span>🎛️</span> Demucs 4-Stem Separation</div>
+                <div class="feature-pill"><span>🎼</span> BTC Transformer Chords</div>
+              </div>
+
+              <div class="modal-actions">
+                <button id="btn-start-youtube" class="btn btn-hero-action btn-yt-convert-modal" disabled>
+                  <span class="btn-icon">⚡</span>
+                  <span>Convert &amp; Run AI Pipeline</span>
+                </button>
+              </div>
+
+              <div class="modal-footer-switch">
+                <span>Want to upload a local audio file instead?</span>
+                <button type="button" class="btn-switch-link" id="btn-switch-to-file-tab">Switch to Local File &rarr;</button>
+              </div>
             </div>
           </div>
 
@@ -645,10 +748,19 @@
 
             <!-- MULTI-STEP CHECKLIST -->
             <div class="pipeline-steps-list">
-              <div id="step-converting" class="pipeline-step-row">
+              <div id="step-downloading" class="pipeline-step-row" style="display: none;">
                 <div class="step-icon-col">📥</div>
                 <div class="step-content-col">
-                  <div class="step-name">1. Upload & Audio Standardization</div>
+                  <div class="step-name">1. YouTube Audio Extraction</div>
+                  <div class="step-desc">High-quality audio stream download & MP3 extraction</div>
+                </div>
+                <span class="step-badge">Pending</span>
+              </div>
+
+              <div id="step-converting" class="pipeline-step-row">
+                <div class="step-icon-col">🎵</div>
+                <div class="step-content-col">
+                  <div class="step-name">2. Audio Standardization</div>
                   <div class="step-desc">FFmpeg 44.1kHz High-Fidelity Audio Conversion</div>
                 </div>
                 <span class="step-badge">Pending</span>

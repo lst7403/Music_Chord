@@ -34,10 +34,12 @@ Install PyTorch and TorchAudio for your CUDA version (e.g. CUDA 12.8 / 13.0):
 ```bash
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu130
 pip install demucs beat-this
-pip install ipykernel numpy soundfile librosa transformers huggingface_hub scipy pandas tqdm fastapi uvicorn python-multipart
+pip install ipykernel numpy soundfile librosa transformers huggingface_hub scipy pandas tqdm fastapi uvicorn python-multipart yt-dlp imageio-ffmpeg
 ```
 
-> **Note**: `beat-this` is the state-of-the-art transformer model used for automatic beat and downbeat tracking in [`beat.ipynb`](./beat.ipynb). You can install it directly via `pip install beat-this`.
+> **Note**: 
+> - `beat-this` is the state-of-the-art transformer model used for automatic beat and downbeat tracking in [`beat.ipynb`](./beat.ipynb).
+> - `yt-dlp` and `imageio-ffmpeg` allow downloading YouTube links directly and extracting them to `.mp3` without needing a manual system FFmpeg installation.
 
 ---
 

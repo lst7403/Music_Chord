@@ -19,7 +19,7 @@ import { initEditorView, loadEditorData, updateEditorPlayhead, applyEditorTransp
 const state = {
   currentView: 'visualizer', // 'visualizer' | 'editor' | 'library'
   timelineView: 'stream',    // 'stream' | 'tape'
-  audio: document.getElementById('audio-player'),
+  audio: null,
   rawChords: [],
   activeChords: [],
   alignedMeasures: [],
@@ -46,79 +46,80 @@ const state = {
 };
 
 // --- DOM ELEMENTS ---
-const el = {
-  audio: document.getElementById('audio-player'),
-  navTabVisualizer: document.getElementById('nav-tab-visualizer'),
-  navTabEditor: document.getElementById('nav-tab-editor'),
-  navTabLibrary: document.getElementById('nav-tab-library'),
-  viewVisualizer: document.getElementById('view-visualizer'),
-  viewEditor: document.getElementById('view-editor'),
-  viewChordLibrary: document.getElementById('view-chord-library'),
-  btnJumpLibrary: document.getElementById('btn-jump-library'),
-  stemSelect: document.getElementById('stem-select'),
-  speedSelect: document.getElementById('speed-select'),
-  transposeVal: document.getElementById('transpose-val'),
-  btnTransposeUp: document.getElementById('transpose-up'),
-  btnTransposeDown: document.getElementById('transpose-down'),
-  btnTransposeReset: document.getElementById('transpose-reset'),
+const el = {};
+
+function initDomReferences() {
+  el.audio = document.getElementById('audio-player');
+  state.audio = el.audio;
+
+  el.navTabVisualizer = document.getElementById('nav-tab-visualizer');
+  el.navTabEditor = document.getElementById('nav-tab-editor');
+  el.navTabLibrary = document.getElementById('nav-tab-library');
+  el.viewVisualizer = document.getElementById('view-visualizer');
+  el.viewEditor = document.getElementById('view-editor');
+  el.viewChordLibrary = document.getElementById('view-chord-library');
+  el.btnJumpLibrary = document.getElementById('btn-jump-library');
+  el.stemSelect = document.getElementById('stem-select');
+  el.speedSelect = document.getElementById('speed-select');
+  el.transposeVal = document.getElementById('transpose-val');
+  el.btnTransposeUp = document.getElementById('transpose-up');
+  el.btnTransposeDown = document.getElementById('transpose-down');
+  el.btnTransposeReset = document.getElementById('transpose-reset');
 
   // Rhythm & Beat HUD Elements
-  playerBeatArea: document.getElementById('player-beat-area'),
-  bpmDisplay: document.getElementById('bpm-display'),
-  beatDots: document.querySelectorAll('.beat-dot'),
-  measureNum: document.getElementById('measure-num'),
-  btnMetronome: document.getElementById('btn-metronome'),
-  heroBeatBadge: document.getElementById('hero-beat-badge'),
-  heroBeatText: document.getElementById('hero-beat-text'),
+  el.playerBeatArea = document.getElementById('player-beat-area');
+  el.bpmDisplay = document.getElementById('bpm-display');
+  el.beatDots = document.querySelectorAll('.beat-dot');
+  el.measureNum = document.getElementById('measure-num');
+  el.btnMetronome = document.getElementById('btn-metronome');
+  el.heroBeatBadge = document.getElementById('hero-beat-badge');
+  el.heroBeatText = document.getElementById('hero-beat-text');
 
-  // Timeline View Switchers & Containers
-  btnTimelineStream: document.getElementById('btn-timeline-stream'),
-  btnTimelineTape: document.getElementById('btn-timeline-tape'),
-  unifiedTimelineWrapper: document.getElementById('unified-timeline-wrapper'),
-  unifiedTimelineContainer: document.getElementById('unified-timeline-container'),
-  slidingTapeViewport: document.getElementById('sliding-tape-viewport'),
-  slidingTapeTrack: document.getElementById('sliding-tape-track'),
-  timelineSearchInput: document.getElementById('timeline-search-input'),
-  tapeNavControls: document.getElementById('tape-nav-controls'),
-  tapeActiveBarBadge: document.getElementById('tape-active-bar-badge'),
-  btnTapePrevBar: document.getElementById('btn-tape-prev-bar'),
-  btnTapeNextBar: document.getElementById('btn-tape-next-bar'),
-  autoScrollToggle: document.getElementById('auto-scroll-toggle'),
-  modeBtns: document.querySelectorAll('.mode-toggle-group .btn'),
+  // Timeline Containers & Navigation
+  el.unifiedTimelineWrapper = document.getElementById('unified-timeline-wrapper');
+  el.unifiedTimelineContainer = document.getElementById('unified-timeline-container');
+  el.slidingTapeViewport = document.getElementById('sliding-tape-viewport');
+  el.slidingTapeTrack = document.getElementById('sliding-tape-track');
+  el.timelineSearchInput = document.getElementById('timeline-search-input');
+  el.tapeNavControls = document.getElementById('tape-nav-controls');
+  el.tapeActiveBarBadge = document.getElementById('tape-active-bar-badge');
+  el.btnTapePrevBar = document.getElementById('btn-tape-prev-bar');
+  el.btnTapeNextBar = document.getElementById('btn-tape-next-bar');
+  el.autoScrollToggle = document.getElementById('auto-scroll-toggle');
+  el.modeBtns = document.querySelectorAll('.mode-toggle-group .btn');
 
   // Instrument Cards
-  pianoCard: document.getElementById('piano-card'),
-  guitarCard: document.getElementById('guitar-card'),
-  guitarChordSvg: document.getElementById('guitar-chord-svg'),
-  guitarChordTitle: document.getElementById('guitar-chord-title'),
-  guitarSoundingTitle: document.getElementById('guitar-sounding-title'),
-  guitarStringNotes: document.getElementById('guitar-string-notes'),
-  guitarFingeringLabel: document.getElementById('guitar-fingering-label'),
-  capoSelect: document.getElementById('capo-select'),
-  btnSmartCapo: document.getElementById('btn-smart-capo'),
+  el.pianoCard = document.getElementById('piano-card');
+  el.guitarCard = document.getElementById('guitar-card');
+  el.guitarChordSvg = document.getElementById('guitar-chord-svg');
+  el.guitarChordTitle = document.getElementById('guitar-chord-title');
+  el.guitarSoundingTitle = document.getElementById('guitar-sounding-title');
+  el.guitarStringNotes = document.getElementById('guitar-string-notes');
+  el.guitarFingeringLabel = document.getElementById('guitar-fingering-label');
+  el.capoSelect = document.getElementById('capo-select');
+  el.btnSmartCapo = document.getElementById('btn-smart-capo');
 
-  heroChordName: document.getElementById('hero-chord-name'),
-  heroChordDesc: document.getElementById('hero-chord-desc'),
-  chordTiming: document.getElementById('chord-timing'),
-  upcomingChordsContainer: document.getElementById('upcoming-chords-container'),
+  el.heroChordName = document.getElementById('hero-chord-name');
+  el.heroChordDesc = document.getElementById('hero-chord-desc');
+  el.chordTiming = document.getElementById('chord-timing');
 
-  altTargetChord: document.getElementById('alt-target-chord'),
-  alternativesGrid: document.getElementById('alternatives-grid'),
+  el.altTargetChord = document.getElementById('alt-target-chord');
+  el.alternativesGrid = document.getElementById('alternatives-grid');
 
-  notesLabel: document.getElementById('notes-label'),
-  pianoKeyboard: document.getElementById('piano-keyboard'),
+  el.notesLabel = document.getElementById('notes-label');
+  el.pianoKeyboard = document.getElementById('piano-keyboard');
 
   // Player controls
-  btnPlayPause: document.getElementById('btn-play-pause'),
-  btnPrevChord: document.getElementById('btn-prev-chord'),
-  btnNextChord: document.getElementById('btn-next-chord'),
-  audioScrubber: document.getElementById('audio-scrubber'),
-  scrubberFill: document.getElementById('scrubber-fill'),
-  timeCurrent: document.getElementById('time-current'),
-  timeTotal: document.getElementById('time-total'),
-  volumeSlider: document.getElementById('volume-slider'),
-  btnMute: document.getElementById('btn-mute'),
-};
+  el.btnPlayPause = document.getElementById('btn-play-pause');
+  el.btnPrevChord = document.getElementById('btn-prev-chord');
+  el.btnNextChord = document.getElementById('btn-next-chord');
+  el.audioScrubber = document.getElementById('audio-scrubber');
+  el.scrubberFill = document.getElementById('scrubber-fill');
+  el.timeCurrent = document.getElementById('time-current');
+  el.timeTotal = document.getElementById('time-total');
+  el.volumeSlider = document.getElementById('volume-slider');
+  el.btnMute = document.getElementById('btn-mute');
+}
 
 // --- DATA FETCHING ---
 async function fetchStems() {
@@ -267,24 +268,7 @@ function renderTape() {
   filterTimeline();
 }
 
-function switchTimelineView(view) {
-  state.timelineView = view;
-  const isStream = view === 'stream';
 
-  if (el.btnTimelineStream) el.btnTimelineStream.classList.toggle('active', isStream);
-  if (el.btnTimelineTape) el.btnTimelineTape.classList.toggle('active', !isStream);
-
-  if (el.unifiedTimelineWrapper) el.unifiedTimelineWrapper.style.display = isStream ? 'block' : 'none';
-  if (el.slidingTapeViewport) el.slidingTapeViewport.style.display = isStream ? 'none' : 'block';
-  if (el.tapeNavControls) el.tapeNavControls.style.display = isStream ? 'none' : 'flex';
-
-  // Center active element on view change
-  if (isStream && state.currentChordIndex >= 0) {
-    centerActiveChordCard(state.currentChordIndex, 'auto');
-  } else if (!isStream && state.currentMeasureNum > 0) {
-    centerMeasureInSlidingTape(state.currentMeasureNum, 'auto');
-  }
-}
 
 function applyTransposition() {
   state.activeChords = state.rawChords.map(item => ({
@@ -1041,6 +1025,7 @@ function switchView(viewName) {
 
 // --- INITIALIZE ---
 function init() {
+  initDomReferences();
   initPianoKeyboard(el.pianoKeyboard);
   setInstrumentMode('guitar');
   setupEventListeners();

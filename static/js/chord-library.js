@@ -220,7 +220,7 @@ function renderLibraryLayout(container) {
         <!-- 1. Search Bar -->
         <div class="filter-search-group">
           <span class="search-icon">🔍</span>
-          <input type="text" id="lib-search-input" class="lib-search-input" placeholder="Search chord (e.g. C, F#m, Cmaj7, 3fr)...">
+          <input type="text" id="lib-search-input" class="lib-search-input" placeholder="Search chord (e.g. C, F#m, Cmaj7, 3fr)..." aria-label="Search guitar chord library">
           <button id="lib-search-clear" class="btn-clear-search" style="display: none;">✕</button>
         </div>
 
